@@ -1,0 +1,84 @@
+# Worked example: AI-assisted insurance claim payout
+# Illustrative — shows how the receipt exposes a TOCTOU gap (CWE-367)
+# and preserves separation of duties.
+
+decision_id: DR-2026-07-03-001
+workflow: claims_review_ai
+decision_type: approve_claim_payout
+risk_class: high
+
+request:
+  requester: claims_specialist_l2
+  requester_authority: claims_limit_under_5000
+  requested_action: approve payout for claim CLM-88412
+  requested_at: 2026-07-03T09:14:00Z
+
+check:
+  checked_by: human
+  checked_at: 2026-07-03T09:31:00Z
+  evidence_seen:
+    - claim_form_v3
+    - policy_clause_7.2
+    - fraud_score_report_0.12
+    - customer_history_24mo
+  context_hash_at_check: "sha256:ab3f…"
+  assumptions:
+    - no open fraud investigation
+    - policy active at loss date
+  dissenting_signals:
+    - repair invoice uploaded after initial assessment
+    - invoice total mismatch of £140
+
+recommendation:
+  recommended_by: model
+  model_version: claims-triage-2.4.1
+  recommendation: approve
+  confidence: 0.82
+  rationale: evidence consistent with policy clause 7.2; fraud score low
+
+authority:
+  approver: claims_manager_r.patel
+  approval_method: explicit
+  approved_at: 2026-07-03T09:35:00Z
+  authority_basis: claims_authority_matrix_v5#L2
+  approval_scope: "payout up to £4,800 to policyholder account on file"
+  separation_of_duties_ok: true          # model recommended; human approved; workflow executed
+
+execution:
+  executed_by: workflow
+  executed_at: 2026-07-03T11:02:00Z      # 87 minutes after approval
+  tool_or_system: payment_api_v2
+  credential_used: short_lived_token_7f2a
+  actual_action: "payout £4,800 to policyholder account on file"
+  context_hash_at_execution: "sha256:9c11…"   # DIFFERS from check hash
+  execution_result: success
+
+# FINDING: context hash changed between check (09:31) and execution (11:02).
+# A new document landed on the claim at 10:47. Approval was valid at check
+# time; execution ran against a changed state. Classic CWE-367.
+# Control: execution must re-verify context hash and halt on mismatch.
+
+boundary:
+  allowed_actions:
+    - approve payout
+    - notify customer
+  denied_actions:
+    - change policy record
+    - override fraud flag
+    - export customer file
+  failure_mode: fail_closed
+  rollback_path: payment_reversal_within_24h
+
+accountability:
+  accountable_owner: claims_manager_r.patel
+  review_required_by: 2026-07-10T00:00:00Z
+  appeal_or_escalation_path: fraud_review_queue
+
+receipt:
+  prompt_id: prm_29381
+  model_output_id: out_55102
+  workflow_run_id: run_88412-004
+  external_event_ids:
+    - payment_event_CLM-88412-p1
+  replayable: true
+  integrity_hash: "sha256:f0e4…"

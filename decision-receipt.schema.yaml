@@ -1,0 +1,66 @@
+# Open Decision Receipt — Minimum Schema v0.1
+# License: Apache-2.0
+# Invariant: no consequential AI-enabled action without replayable proof of
+# evidence, authority, scope, execution, and accountability.
+
+decision_id: DR-YYYY-MM-DD-NNN        # unique, immutable
+workflow: string                       # workflow identifier
+decision_type: string                  # e.g. approve_claim_payout, merge_pr, send_outreach
+risk_class: low | medium | high | critical
+
+request:
+  requester: person | role | system | agent
+  requester_authority: string          # the authority the requester actually holds
+  requested_action: string
+  requested_at: timestamp
+
+check:                                 # TIME OF CHECK
+  checked_by: person | model | workflow
+  checked_at: timestamp
+  evidence_seen: [source_ids]          # exactly what was visible at check time
+  context_hash_at_check: hash          # fingerprint of the checked state
+  assumptions: [strings]
+  dissenting_signals: [strings]        # anything that argued against the action
+
+recommendation:
+  recommended_by: person | model | agent
+  model_version: string | null
+  recommendation: string
+  confidence: number | null
+  rationale: string
+
+authority:
+  approver: person | role              # must differ from recommender for SoD
+  approval_method: explicit | policy | delegated | break_glass
+  approved_at: timestamp
+  authority_basis: policy_or_role_reference
+  approval_scope: string               # the exact bounded action approved
+  separation_of_duties_ok: true | false
+
+execution:                             # TIME OF USE
+  executed_by: workflow | agent | tool | human
+  executed_at: timestamp
+  tool_or_system: string
+  credential_used: token_or_session_id # exposes confused-deputy paths (CWE-441)
+  actual_action: string                # compare against approval_scope
+  context_hash_at_execution: hash      # differs from check hash => TOCTOU (CWE-367)
+  execution_result: string
+
+boundary:
+  allowed_actions: [strings]
+  denied_actions: [strings]
+  failure_mode: fail_closed | fail_open | unknown   # unknown is a finding
+  rollback_path: string | null
+
+accountability:
+  accountable_owner: person | role     # who carries the consequence
+  review_required_by: timestamp | null
+  appeal_or_escalation_path: string | null
+
+receipt:
+  prompt_id: string | null
+  model_output_id: string | null
+  workflow_run_id: string | null
+  external_event_ids: [strings]
+  replayable: true | false             # can this decision be reconstructed end to end?
+  integrity_hash: hash                 # hash of the completed receipt
