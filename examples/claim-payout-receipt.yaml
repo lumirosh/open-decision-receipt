@@ -1,5 +1,5 @@
 # Worked example: AI-assisted insurance claim payout
-# Illustrative — shows how the receipt exposes a TOCTOU gap (CWE-367)
+# Illustrative - shows how the receipt exposes a TOCTOU gap (CWE-367)
 # and preserves separation of duties.
 
 decision_id: DR-2026-07-03-001

@@ -8,12 +8,12 @@ An open, vendor-neutral schema for proving that AI-enabled decisions were **auth
 
 ## The problem
 
-Firewalls, IAM, and network controls protect Layers 1–7. AI agents don't attack there. They operate at:
+Firewalls, IAM, and network controls protect Layers 1-7. AI agents don't attack there. They operate at:
 
-- **Layer 8 — human judgment under pressure:** approval fatigue, urgency injection, rubber-stamping, "the dashboard said it was okay."
-- **Layer 9 — organizational authority:** unclear ownership, compliance that performs instead of prevents, accountability without stop-power.
+- **Layer 8 - human judgment under pressure:** approval fatigue, urgency injection, rubber-stamping, "the dashboard said it was okay."
+- **Layer 9 - organizational authority:** unclear ownership, compliance that performs instead of prevents, accountability without stop-power.
 
-AI is not mainly creating new vulnerabilities. It is resurfacing **old, well-known security weakness classes** inside AI-enabled business workflows — faster, quieter, and harder to see:
+AI is not mainly creating new vulnerabilities. It is resurfacing **old, well-known security weakness classes** inside AI-enabled business workflows - faster, quieter, and harder to see:
 
 | Weakness class | Reference | AI workflow expression |
 |---|---|---|
@@ -22,7 +22,7 @@ AI is not mainly creating new vulnerabilities. It is resurfacing **old, well-kno
 | Broken / missing authorization | CWE-285, CWE-862 | Tool access exceeds decision authority; approval is granted at workflow level, not action level |
 | Privilege drift | Least-privilege failure | The agent accumulates CRM, email, billing, database access; nobody redraws the trust boundary |
 | Fail-open design | Insecure defaults | Reviewer unavailable → approval passes; logs fail → execution continues |
-| Weak audit trail / repudiation | STRIDE-R, logging failure | No prompt record, no model version, no rationale — the decision cannot be reconstructed |
+| Weak audit trail / repudiation | STRIDE-R, logging failure | No prompt record, no model version, no rationale - the decision cannot be reconstructed |
 | Separation-of-duties failure | SoD control failure | The same agent recommends, executes, and summarizes its own action |
 | Supply-chain / context poisoning | OWASP LLM03/LLM04 | Vendor models, RAG corpora, and tool metadata silently shape decisions |
 | Excessive agency | OWASP LLM06 | Autonomy and permissions far beyond what the task requires |
@@ -32,11 +32,11 @@ Every one of these classes has a decades-old name. What's new is the execution s
 
 ## The missing artifact
 
-When an AI-assisted decision goes wrong, organizations discover they have **fragments** — a Slack message, a workflow log, a model output, a dashboard screenshot — but no **decision object**.
+When an AI-assisted decision goes wrong, organizations discover they have **fragments** - a Slack message, a workflow log, a model output, a dashboard screenshot - but no **decision object**.
 
 A log says: *something happened.*
 
-A **Decision Receipt** says: *this happened because this authority approved this bounded action, using this evidence, under this policy, at this time — with this access path, this execution boundary, and this accountable owner.*
+A **Decision Receipt** says: *this happened because this authority approved this bounded action, using this evidence, under this policy, at this time - with this access path, this execution boundary, and this accountable owner.*
 
 | Audit log | Decision Receipt |
 |---|---|
@@ -112,7 +112,7 @@ For any AI-enabled workflow:
 13. Is separation of duties preserved?
 14. What receipt proves all of this?
 
-If a workflow cannot answer these, the decision was not governed — it was performed.
+If a workflow cannot answer these, the decision was not governed - it was performed.
 
 ## Design invariant
 
