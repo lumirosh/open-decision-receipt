@@ -50,7 +50,7 @@ The receipt binds **check-time to use-time**. Every receipt carries `checked_at`
 
 ## The schema
 
-The minimum schema is in [`decision-receipt.schema.yaml`](./decision-receipt.schema.yaml). A worked example is in [`examples/`](./examples/).
+The minimum schema is in [`decision-receipt.schema.yaml`](./decision-receipt.schema.yaml). Worked examples are in [`examples/`](./examples/). The MCP/tool-call bridge note is in [`docs/mcp-verified-action-bridge.md`](./docs/mcp-verified-action-bridge.md).
 
 Eight blocks:
 

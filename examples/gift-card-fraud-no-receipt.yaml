@@ -1,0 +1,130 @@
+# Counter-example: what happens when no Decision Receipt exists
+#
+# Based on a real, publicly reported incident (June 2026):
+# A California man found unauthorized gift purchases in euros, around $315,
+# charged through his AI assistant account, which had stored payment access.
+# His bank denied the fraud claim, citing the AI platform's receipt as proof
+# he authorized the charges. The platform said it found no evidence its
+# systems were breached and attributed the charges to a compromise of the
+# user's device. The user was later refunded.
+#
+# Sources:
+#   https://abc7news.com/post/anthropic-ai-hack-martinez-california-man-says-fraudulent-charges-racked-euros-claude-account/19366402/
+#   https://sfist.com/2026/06/24/east-bay-man-says-his-bank-account-was-hacked-via-claude-add-on/
+#
+# The victim's own words, per ABC7:
+#   "How could a receipt mean that I made those charges?
+#    It just means a transaction occurred."
+#
+# That sentence is the entire problem this schema exists to solve.
+# The bank treated a transaction log as an authorization record.
+# A log proves something happened. A receipt proves why it was allowed.
+#
+# Below: the incident reconstructed against the schema. Every field marked
+# `unknown` is a question nobody could answer after the fact. That is the
+# finding.
+
+decision_id: unknown                    # no decision object was ever created
+workflow: consumer_purchase_via_ai_assistant
+decision_type: execute_payment
+risk_class: high                        # stored payment credentials in scope
+
+request:
+  requester: unknown                    # account owner? malware on device? injected instruction?
+  requester_authority: unknown          # never checked at request time
+  requested_action: "purchase gift accounts in EUR"
+  requested_at: unknown
+
+check:
+  checked_by: none                      # no verification step existed
+  checked_at: null
+  evidence_seen: []
+  context_hash_at_check: null
+  assumptions:
+    - "instruction originating from the account session = instruction from the account owner"
+      # this single assumption is the vulnerability: session identity
+      # was treated as decision authority, a confused deputy pattern
+  dissenting_signals:
+    - currency mismatch, EUR purchases by a USD account holder
+    - purchase type novel for this account, gift accounts
+      # visible in retrospect; nothing was positioned to act on them
+
+recommendation:
+  recommended_by: none
+  model_version: unknown
+  recommendation: n/a
+  confidence: null
+  rationale: n/a
+
+authority:
+  approver: none                        # no human approval gate before payment
+  approval_method: null
+  approved_at: null
+  authority_basis: "stored payment method on file"
+      # a credential is not an authority. possession of the wallet
+      # was treated as permission to spend it
+  approval_scope: unbounded             # no per-transaction scope existed
+  separation_of_duties_ok: false        # same surface requested, executed, and receipted
+
+execution:
+  executed_by: ai_assistant_with_stored_payment_access
+  executed_at: known_from_bank_alerts   # first record appears after money moved
+  tool_or_system: digital_wallet
+  credential_used: stored_payment_method
+  actual_action: "gift purchases in EUR, around $315 across multiple attempts"
+  context_hash_at_execution: null
+  execution_result: charges_posted
+
+boundary:
+  allowed_actions: unknown              # no allowlist existed
+  denied_actions: []                    # nothing was denied by design
+  failure_mode: fail_open               # absence of a check permitted the action
+  rollback_path: "consumer fraud dispute"
+      # note: the dispute failed, because the only artifact available
+      # was a transaction receipt, which the bank read as authorization
+
+accountability:
+  accountable_owner: contested          # user blamed platform, platform cited
+                                        # device compromise, bank cited receipt.
+                                        # three parties, zero owners.
+  review_required_by: null
+  appeal_or_escalation_path: "media coverage"
+      # when the escalation path of record is a TV consumer-affairs desk,
+      # the accountability design has already failed
+
+receipt:
+  prompt_id: null
+  model_output_id: null
+  workflow_run_id: null
+  external_event_ids:
+    - bank_transaction_records          # the only surviving evidence
+  replayable: false                     # the decision cannot be reconstructed:
+                                        # nobody can prove who or what initiated
+                                        # the purchase instruction
+  integrity_hash: null
+
+# FINDINGS
+#
+# 1. Confused deputy pattern: the assistant's session identity and stored
+#    credential were treated as the owner's decision authority. Requester
+#    and executor were never separable, so after the fact nobody could
+#    prove which one acted.
+#
+# 2. Fail-open by design: no approval gate existed between "instruction
+#    appeared in session" and "money moved." The absence of a check was
+#    silently equivalent to approval.
+#
+# 3. Repudiation failure: the only artifact produced was a transaction
+#    record. When disputed, that record was read as proof of authorization,
+#    the exact inversion of what evidence should do. With no requester,
+#    no check, no approver, and no scope on record, the victim could not
+#    prove a negative.
+#
+# 4. Accountability vacuum: user, platform, and bank each held a fragment;
+#    none held a decision object. Refund arrived via goodwill and press
+#    attention, not via evidence.
+#
+# A populated receipt would have made this dispute trivial in either
+# direction: requester_authority + approval_method + approval_scope either
+# show the owner authorized EUR gift purchases, or they show nobody did.
+# "A transaction occurred" would stop passing as an answer.
