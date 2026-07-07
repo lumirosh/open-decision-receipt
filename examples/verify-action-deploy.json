@@ -1,0 +1,11 @@
+{
+  "actor": "release_workflow",
+  "workflow": "cert_gated_deployment",
+  "action": "deploy_certified_workflow",
+  "risk_class": "high",
+  "context_refs": ["certification_status"],
+  "params": {
+    "environment": "production",
+    "path": "A"
+  }
+}
