@@ -31,7 +31,7 @@ recommendation:
 
 authority:
   approver: person | role              # must differ from recommender for SoD
-  approval_method: explicit | policy | delegated | break_glass
+  approval_method: explicit | policy | delegated | break_glass | none | unknown | null
   approved_at: timestamp
   authority_basis: policy_or_role_reference
   approval_scope: string               # the exact bounded action approved

@@ -20,7 +20,7 @@
     "receipt"
   ],
   "properties": {
-    "decision_id": {"type": ["string", "null"], "minLength": 1},
+    "decision_id": {"type": "string", "minLength": 1},
     "workflow": {"type": "string", "minLength": 1},
     "decision_type": {"type": "string", "minLength": 1},
     "risk_class": {"enum": ["low", "medium", "high", "critical"]},
