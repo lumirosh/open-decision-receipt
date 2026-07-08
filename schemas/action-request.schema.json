@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-decision-receipt.org/schemas/action-request.schema.json",
+  "title": "Decision Receipt Action Request",
+  "description": "Minimum request object checked before a high-consequence AI or workflow action.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["actor", "workflow", "action", "risk_class"],
+  "properties": {
+    "actor": {"type": "string", "minLength": 1},
+    "actor_authority": {"type": "string"},
+    "workflow": {"type": "string", "minLength": 1},
+    "action": {"type": "string", "minLength": 1},
+    "risk_class": {"enum": ["low", "medium", "high", "critical"]},
+    "context_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "params": {"type": "object"}
+  }
+}

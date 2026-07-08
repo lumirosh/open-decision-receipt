@@ -11,11 +11,11 @@ request:
   requester: claims_specialist_l2
   requester_authority: claims_limit_under_5000
   requested_action: approve payout for claim CLM-88412
-  requested_at: 2026-07-03T09:14:00Z
+  requested_at: "2026-07-03T09:14:00Z"
 
 check:
   checked_by: human
-  checked_at: 2026-07-03T09:31:00Z
+  checked_at: "2026-07-03T09:31:00Z"
   evidence_seen:
     - claim_form_v3
     - policy_clause_7.2
@@ -39,14 +39,14 @@ recommendation:
 authority:
   approver: claims_manager_r.patel
   approval_method: explicit
-  approved_at: 2026-07-03T09:35:00Z
+  approved_at: "2026-07-03T09:35:00Z"
   authority_basis: claims_authority_matrix_v5#L2
   approval_scope: "payout up to £4,800 to policyholder account on file"
   separation_of_duties_ok: true          # model recommended; human approved; workflow executed
 
 execution:
   executed_by: workflow
-  executed_at: 2026-07-03T11:02:00Z      # 87 minutes after approval
+  executed_at: "2026-07-03T11:02:00Z"    # 87 minutes after approval
   tool_or_system: payment_api_v2
   credential_used: short_lived_token_7f2a
   actual_action: "payout £4,800 to policyholder account on file"
@@ -71,7 +71,7 @@ boundary:
 
 accountability:
   accountable_owner: claims_manager_r.patel
-  review_required_by: 2026-07-10T00:00:00Z
+  review_required_by: "2026-07-10T00:00:00Z"
   appeal_or_escalation_path: fraud_review_queue
 
 receipt:

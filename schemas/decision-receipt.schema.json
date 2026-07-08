@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-decision-receipt.org/schemas/decision-receipt.schema.json",
+  "title": "Open Decision Receipt",
+  "description": "A replayable record of evidence, authority, scope, execution, boundary, and accountability for an AI-enabled or workflow-mediated decision.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "decision_id",
+    "workflow",
+    "decision_type",
+    "risk_class",
+    "request",
+    "check",
+    "recommendation",
+    "authority",
+    "execution",
+    "boundary",
+    "accountability",
+    "receipt"
+  ],
+  "properties": {
+    "decision_id": {"type": ["string", "null"], "minLength": 1},
+    "workflow": {"type": "string", "minLength": 1},
+    "decision_type": {"type": "string", "minLength": 1},
+    "risk_class": {"enum": ["low", "medium", "high", "critical"]},
+    "request": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["requester", "requester_authority", "requested_action", "requested_at"],
+      "properties": {
+        "requester": {"type": ["string", "null"]},
+        "requester_authority": {"type": ["string", "null"]},
+        "requested_action": {"type": "string", "minLength": 1},
+        "requested_at": {"type": ["string", "null"]}
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["checked_by", "checked_at", "evidence_seen", "context_hash_at_check", "assumptions", "dissenting_signals"],
+      "properties": {
+        "checked_by": {"type": ["string", "null"]},
+        "checked_at": {"type": ["string", "null"]},
+        "evidence_seen": {"type": "array", "items": {"type": "string"}},
+        "context_hash_at_check": {"type": ["string", "null"]},
+        "assumptions": {"type": "array", "items": {"type": "string"}},
+        "dissenting_signals": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["recommended_by", "model_version", "recommendation", "confidence", "rationale"],
+      "properties": {
+        "recommended_by": {"type": ["string", "null"]},
+        "model_version": {"type": ["string", "null"]},
+        "recommendation": {"type": ["string", "null"]},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "rationale": {"type": ["string", "null"]}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["approver", "approval_method", "approved_at", "authority_basis", "approval_scope", "separation_of_duties_ok"],
+      "properties": {
+        "approver": {"type": ["string", "null"]},
+        "approval_method": {"type": ["string", "null"], "enum": ["explicit", "policy", "delegated", "break_glass", "none", "unknown", null]},
+        "approved_at": {"type": ["string", "null"]},
+        "authority_basis": {"type": ["string", "null"]},
+        "approval_scope": {"type": ["string", "null"]},
+        "separation_of_duties_ok": {"type": ["boolean", "null"]}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["executed_by", "executed_at", "tool_or_system", "credential_used", "actual_action", "context_hash_at_execution", "execution_result"],
+      "properties": {
+        "executed_by": {"type": ["string", "null"]},
+        "executed_at": {"type": ["string", "null"]},
+        "tool_or_system": {"type": ["string", "null"]},
+        "credential_used": {"type": ["string", "null"]},
+        "actual_action": {"type": ["string", "null"]},
+        "context_hash_at_execution": {"type": ["string", "null"]},
+        "execution_result": {"type": ["string", "null"]}
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["allowed_actions", "denied_actions", "failure_mode", "rollback_path"],
+      "properties": {
+        "allowed_actions": {"oneOf": [{"type": "array", "items": {"type": "string"}}, {"type": "string"}]},
+        "denied_actions": {"oneOf": [{"type": "array", "items": {"type": "string"}}, {"type": "string"}]},
+        "failure_mode": {"type": ["string", "null"], "enum": ["fail_closed", "fail_open", "unknown", null]},
+        "rollback_path": {"type": ["string", "null"]}
+      }
+    },
+    "accountability": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["accountable_owner", "review_required_by", "appeal_or_escalation_path"],
+      "properties": {
+        "accountable_owner": {"type": ["string", "null"]},
+        "review_required_by": {"type": ["string", "null"]},
+        "appeal_or_escalation_path": {"type": ["string", "null"]}
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["prompt_id", "model_output_id", "workflow_run_id", "external_event_ids", "replayable", "integrity_hash"],
+      "properties": {
+        "prompt_id": {"type": ["string", "null"]},
+        "model_output_id": {"type": ["string", "null"]},
+        "workflow_run_id": {"type": ["string", "null"]},
+        "external_event_ids": {"type": "array", "items": {"type": "string"}},
+        "replayable": {"type": "boolean"},
+        "integrity_hash": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

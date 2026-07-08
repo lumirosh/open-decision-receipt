@@ -2,13 +2,45 @@
 
 **Human-in-the-loop is not evidence. A Decision Receipt is.**
 
-An open, vendor-neutral schema for proving that AI-enabled decisions were **authorized, evidenced, bounded, executed as approved, accountable, and replayable**.
+An open, vendor-neutral schema and reference implementation for proving that AI-enabled decisions were **authorized, evidenced, bounded, executed as approved, accountable, and replayable**.
+
+For AI governance, security, GRC, platform, and agent-infra teams who need to prove why an AI-assisted action was authorized, not just log that it happened.
 
 A Decision Receipt is not just an audit log. It is an authority object with a lifecycle:
 
 ```text
 issued before → enforced during → sealed after → reopened when the basis changes
 ```
+
+---
+
+## Quickstart
+
+```bash
+git clone https://github.com/lumirosh/open-decision-receipt.git
+cd open-decision-receipt
+python -m pip install -e '.[dev]'
+python -m pytest -q
+
+rm -rf /tmp/odr-receipts
+
+dam-verify --receipts-dir /tmp/odr-receipts verify examples/verify-action-deploy.json
+# copy the decision_id from the output
+
+dam-verify --receipts-dir /tmp/odr-receipts approve <decision_id> --approver operator
+dam-verify --receipts-dir /tmp/odr-receipts seal <decision_id>
+dam-verify --receipts-dir /tmp/odr-receipts replay <decision_id>
+dam-verify --receipts-dir /tmp/odr-receipts chain
+```
+
+Expected replay signal:
+
+```text
+check==use : True
+chain intact: True
+```
+
+Full walkthrough: [`docs/quickstart.md`](./docs/quickstart.md).
 
 ---
 
@@ -132,7 +164,14 @@ The human does not merely sit in the loop. The human signs scoped authority into
 
 ## The schema
 
-The minimum schema is in [`decision-receipt.schema.yaml`](./decision-receipt.schema.yaml). Worked examples are in [`examples/`](./examples/).
+The minimum human-readable schema is in [`decision-receipt.schema.yaml`](./decision-receipt.schema.yaml). Machine-valid JSON Schemas live in [`schemas/`](./schemas/):
+
+```text
+schemas/decision-receipt.schema.json
+schemas/action-request.schema.json
+```
+
+Worked examples are in [`examples/`](./examples/). The test suite validates the examples against the machine schemas.
 
 Eight blocks:
 
@@ -189,6 +228,7 @@ The current reference CLI is intentionally small and boring.
 ```bash
 # 1. Verify a proposed action against an authority bundle
 python -m dam_verify.cli verify examples/verify-action-deploy.json
+# or, after install: dam-verify verify examples/verify-action-deploy.json
 
 # 2. Human signs scoped authority
 python -m dam_verify.cli approve <decision_id> --approver operator
@@ -240,9 +280,11 @@ dam_verify/grammar.py      compile authorized/sealed receipt boundaries into JSO
 dam_verify/okf.py          promote sealed receipt into OKF/DAM bundle
 dam_verify/cli.py          CLI for verify/approve/seal/watch/show/replay/grammar/chain/promote
 
+schemas/                   machine-valid JSON Schemas
 dam/action_bundles/        OKF-style authority bundles
-examples/                  action request examples
-tests/                     lifecycle, chain, grammar, replay, and promotion tests
+examples/                  receipt and action-request examples
+docs/                      quickstart, lifecycle, MCP bridge, limitations
+tests/                     lifecycle, schema, chain, grammar, replay, and promotion tests
 ```
 
 Core functions:
@@ -323,8 +365,13 @@ This is not:
 - a GRC suite
 - a UI
 - a policy language
+- identity binding
+- a signature scheme
+- legal advice
 
 It is the missing authority and evidence object. Enforcement layers can consume it. Governance teams can inspect it. Auditors can replay it. Humans can sign it.
+
+For the honest boundary list, see [`docs/limitations.md`](./docs/limitations.md).
 
 ---
 

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-decision-receipt"
+version = "0.1.0"
+description = "Vendor-neutral schema and reference implementation for replayable AI Decision Receipts"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{name = "LumiRosh"}]
+keywords = ["ai-governance", "audit", "decision-records", "infosec", "mcp"]
+dependencies = [
+  "PyYAML>=6.0",
+  "jsonschema>=4.0"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+dam-verify = "dam_verify.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["dam_verify*"]
+exclude = ["schemas*", "tests*"]
+
+[tool.setuptools.package-data]
+"*" = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
