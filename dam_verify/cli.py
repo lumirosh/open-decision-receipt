@@ -1,11 +1,15 @@
 """dam verify-action CLI - the cert-drift demo surface.
 
 Usage:
-    python -m dam_verify.cli verify   examples/deploy-action.json
+    python -m dam_verify.cli verify   examples/verify-action-deploy.json
     python -m dam_verify.cli approve  <decision_id> --approver operator
     python -m dam_verify.cli seal     <decision_id> --result success
-    python -m dam_verify.cli watch
-    python -m dam_verify.cli show     <decision_id>
+    python -m dam_verify.cli replay   <decision_id>
+    python -m dam_verify.cli grammar  <decision_id>
+    python -m dam_verify.cli chain
+
+Global options such as --receipts-dir come before the subcommand:
+    python -m dam_verify.cli --receipts-dir /tmp/receipts verify examples/verify-action-deploy.json
 """
 from __future__ import annotations
 

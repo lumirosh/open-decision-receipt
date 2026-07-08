@@ -257,9 +257,11 @@ promote_receipt_bundle(receipt, approve=True)  # verified knowledge
 
 Current test gate:
 
-```text
-237 passed
+```bash
+python -m pytest -q
 ```
+
+The standalone package test count is intentionally small; the parent LumiRosh repository runs the larger integration gate.
 
 ---
 
