@@ -82,15 +82,22 @@ def context_hash(evidence: dict) -> str:
 # ---------------------------------------------------------------- receipt store
 
 class ReceiptStore:
-    """Append-only evidence plane. Flat JSON files; VPS version is a table."""
+    """Append-only evidence plane. Flat JSON files; VPS version is a table.
+
+    Sealed receipts are appended to a tamper-evident hash chain.
+    """
 
     def __init__(self, root: Path):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
+        from .chain import ReceiptChain
+        self.chain = ReceiptChain(self.root)
 
     def save(self, r: Receipt) -> Path:
         path = self.root / f"{r.decision_id}.json"
         path.write_text(json.dumps(r.to_dict(), indent=2))
+        if r.status == SEALED and r.receipt.get("integrity_hash") and not self.chain.has(r.decision_id):
+            self.chain.append(r.decision_id, r.receipt["integrity_hash"])
         return path
 
     def load(self, decision_id: str) -> Receipt:

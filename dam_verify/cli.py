@@ -60,6 +60,9 @@ def main(argv=None):
     s = sub.add_parser("seal");    s.add_argument("decision_id"); s.add_argument("--result", default="success")
     sub.add_parser("watch")
     sh = sub.add_parser("show");   sh.add_argument("decision_id")
+    rp = sub.add_parser("replay"); rp.add_argument("decision_id")
+    g = sub.add_parser("grammar"); g.add_argument("decision_id")
+    sub.add_parser("chain")
     pr = sub.add_parser("promote"); pr.add_argument("decision_id"); pr.add_argument("--title", default=None); pr.add_argument("--approve", action="store_true")
 
     args = p.parse_args(argv)
@@ -89,6 +92,14 @@ def main(argv=None):
     elif args.cmd == "show":
         r = receipts.load(args.decision_id)
         print(json.dumps(r.to_dict(), indent=2))
+    elif args.cmd == "replay":
+        print(replay(receipts.load(args.decision_id)))
+    elif args.cmd == "grammar":
+        from .grammar import compile_action_schema
+        print(json.dumps(compile_action_schema(receipts.load(args.decision_id)), indent=2))
+    elif args.cmd == "chain":
+        ok, broken = receipts.chain.verify()
+        print(f"chain intact: {ok}" + ("" if ok else f" - broken at entry {broken}"))
     elif args.cmd == "promote":
         r = receipts.load(args.decision_id)
         out = promote_receipt_bundle(
@@ -106,6 +117,31 @@ def main(argv=None):
             print(f"Promoted receipt {r.decision_id} -> {out['path']}")
             print("  state: verified | verification: dam=verified user=approved")
     return 0
+
+
+def replay(r) -> str:
+    """Render a receipt as the decision story. This is the auditor view."""
+    req, chk, auth, exe = r.request, r.check, r.authority, r.execution
+    lines = [
+        f"DECISION {r.decision_id}  [{r.status.upper()}]",
+        f"  workflow   : {r.workflow}  (risk: {r.risk_class})",
+        f"  requested  : '{req.get('requested_action')}' by {req.get('requester')} at {req.get('requested_at')}",
+        f"  checked    : {chk.get('checked_at', 'never')} against {len(chk.get('evidence_seen', {}))} evidence sources",
+        f"               context hash at check: {chk.get('context_hash_at_check', 'n/a')}",
+        f"  authority  : {auth.get('approver', 'NONE')} via {auth.get('approval_method', 'n/a')}"
+        f" | scope: {auth.get('approval_scope', 'n/a')}",
+        f"               basis: {auth.get('authority_basis', 'n/a')} | SoD ok: {auth.get('separation_of_duties_ok', 'n/a')}",
+        f"  boundary   : allowed {r.boundary.get('allowed_actions', [])} | {r.boundary.get('failure_mode', 'n/a')}",
+        f"  executed   : {exe.get('executed_at', 'not executed')}"
+        + (f" | context hash at use: {exe.get('context_hash_at_execution')}" if exe else ""),
+        f"  replayable : {r.replayable} | integrity: {r.receipt.get('integrity_hash', 'unsealed')}",
+    ]
+    if chk.get("context_hash_at_check") and exe.get("context_hash_at_execution"):
+        match = chk["context_hash_at_check"] == exe["context_hash_at_execution"]
+        lines.append(f"  check==use : {match}" + ("" if match else "  << TOCTOU: world changed between approval and action"))
+    for finding in r.findings:
+        lines.append(f"  finding    : {finding['finding']}")
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

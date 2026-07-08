@@ -196,13 +196,20 @@ python -m dam_verify.cli approve <decision_id> --approver operator
 # 3. Seal after execution
 python -m dam_verify.cli seal <decision_id>
 
-# 4. Watch sealed receipts for basis drift
+# 4. Render the receipt story and verify the hash chain
+python -m dam_verify.cli replay <decision_id>
+python -m dam_verify.cli chain
+
+# 5. Compile the receipt authority boundary into a JSON Schema
+python -m dam_verify.cli grammar <decision_id>
+
+# 6. Watch sealed receipts for basis drift
 python -m dam_verify.cli watch
 
-# 5. Dry-run promotion into OKF/DAM verified knowledge
+# 7. Dry-run promotion into OKF/DAM verified knowledge
 python -m dam_verify.cli promote <decision_id>
 
-# 6. Explicitly promote after human approval
+# 8. Explicitly promote after human approval
 python -m dam_verify.cli promote <decision_id> --approve
 ```
 
@@ -228,12 +235,14 @@ One-line demo:
 ```text
 dam_verify/receipt.py      Receipt object, lifecycle states, hashing
 dam_verify/engine.py       BundleStore, ReceiptStore, verify_action, approve, seal, watch
+dam_verify/chain.py        tamper-evident hash chain for sealed receipts
+dam_verify/grammar.py      compile authorized/sealed receipt boundaries into JSON Schema
 dam_verify/okf.py          promote sealed receipt into OKF/DAM bundle
-dam_verify/cli.py          CLI for verify/approve/seal/watch/show/promote
+dam_verify/cli.py          CLI for verify/approve/seal/watch/show/replay/grammar/chain/promote
 
 dam/action_bundles/        OKF-style authority bundles
 examples/                  action request examples
-tests/                     lifecycle and promotion tests
+tests/                     lifecycle, chain, grammar, replay, and promotion tests
 ```
 
 Core functions:
