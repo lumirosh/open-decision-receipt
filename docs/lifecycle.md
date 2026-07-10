@@ -44,3 +44,5 @@ One-line version:
 ```text
 Same actor, same action, same workflow. Valid yesterday, blocked today, and the receipt explains why.
 ```
+
+For a producer-to-consumer sequence diagram and a replayable high-risk credit example, see [`case-study-loan-denial.md`](./case-study-loan-denial.md).

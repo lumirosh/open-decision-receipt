@@ -1,0 +1,85 @@
+# Worked example: AI-assisted loan denial
+# Illustrative. Shows a high-risk decision that remains replayable because
+# model recommendation, human review, managerial authority, and execution are
+# separated. Compare with claim-payout-receipt.yaml for a TOCTOU catch.
+
+decision_id: DR-2026-07-10-loan001
+workflow: loan_underwriting_ai
+decision_type: deny_loan_application
+risk_class: high
+
+request:
+  requester: credit_underwriting_model_v3
+  requester_authority: model_recommendation_only
+  requested_action: recommend denial for application LN-88213
+  requested_at: "2026-07-10T09:12:00Z"
+
+check:
+  checked_by: loan_officer_r.chen
+  checked_at: "2026-07-10T09:40:00Z"
+  evidence_seen:
+    - application_LN-88213
+    - credit_score_report_v2
+    - applicant_income_verification
+    - lending_policy_v4_section_7.2
+  context_hash_at_check: "sha256:7ab2..."
+  assumptions:
+    - applicant identity verified at intake
+    - credit bureau data current within 30 days
+  dissenting_signals:
+    - applicant disputes reported income figure
+
+recommendation:
+  recommended_by: model
+  model_version: credit-scoring-3.1.0
+  recommendation: deny
+  confidence: 0.79
+  rationale: debt-to-income ratio exceeds policy threshold under section 7.2
+
+authority:
+  approver: lending_manager_m.ortiz
+  approval_method: explicit
+  approved_at: "2026-07-10T09:52:00Z"
+  authority_basis: lending_authority_matrix_v4#L2
+  approval_scope: "deny loan application LN-88213, citing policy section 7.2"
+  separation_of_duties_ok: true
+  reviewer_decision: upheld
+  reviewer_justification: "loan officer independently reviewed income documentation and debt ratio calculation; lending manager confirmed the denial is within delegated authority"
+
+execution:
+  executed_by: workflow
+  executed_at: "2026-07-10T10:03:00Z"
+  tool_or_system: lending_decision_api_v2
+  credential_used: short_lived_token_9c4f
+  actual_action: "denial notice issued to applicant with reason code 7.2-DTI"
+  context_hash_at_execution: "sha256:7ab2..."
+  execution_result: success
+
+boundary:
+  allowed_actions:
+    - issue denial notice
+    - log decision rationale
+  denied_actions:
+    - approve loan
+    - modify credit terms
+  failure_mode: fail_closed
+  rollback_path: manual_reconsideration_request
+
+accountability:
+  accountable_owner: lending_manager_m.ortiz
+  review_required_by: "2026-07-24T00:00:00Z"
+  appeal_or_escalation_path: applicant_reconsideration_queue
+
+receipt:
+  prompt_id: prm_77291
+  model_output_id: out_40218
+  workflow_run_id: run_88213-002
+  external_event_ids:
+    - denial_notice_LN-88213
+  replayable: true
+  integrity_hash: "sha256:c91e..."
+
+# FINDING: none. This is the working-as-intended case.
+# On later review, the receipt can show what the model recommended, what the
+# loan officer checked, who had authority to approve the denial, what policy
+# applied, and that check-time context equaled execution-time context.

@@ -12,6 +12,26 @@ A Decision Receipt is not just an audit log. It is an authority object with a li
 issued before → enforced during → sealed after → reopened when the basis changes
 ```
 
+## In 30 seconds
+
+```mermaid
+flowchart LR
+    A[AI or agent proposes action] --> B[Evidence and policy checked]
+    B --> C{Authority resolved?}
+    C -->|Human review needed| D[Human signs scoped authority]
+    C -->|No basis| E[Unknown or denied]
+    D --> F[Workflow executes bounded action]
+    F --> G{Check context equals use context?}
+    G -->|Yes| H[Seal replayable receipt]
+    G -->|No| I[Reopen for re-verification]
+    H --> J[Watch for later drift]
+    J -->|Basis changed| I
+```
+
+**See it in one high-risk workflow:** [`AI-assisted loan denial`](./docs/case-study-loan-denial.md) shows model recommendation → human evidence review → manager approval → bounded execution → later replay.
+
+Architecture, MCP boundary, and documentation map: [`docs/architecture.md`](./docs/architecture.md).
+
 ---
 
 ## Quickstart
@@ -65,27 +85,11 @@ The Decision Receipt exists to close that gap.
 
 ## The problem
 
-Firewalls, IAM, and network controls protect Layers 1-7. AI agents do not only operate there. They operate at:
+AI is not mainly creating new security classes. It is resurfacing old failures inside faster, less visible business workflows: the human approves one context while the system executes another, tool access exceeds decision authority, or nobody can reconstruct why the action was allowed.
 
-- **Layer 8 - human judgment under pressure:** approval fatigue, urgency injection, rubber-stamping, "the dashboard said it was okay."
-- **Layer 9 - organizational authority:** unclear ownership, compliance that performs instead of prevents, accountability without stop-power.
+The Receipt binds **check-time to use-time**. It records what was checked, who had authority, what action was permitted, what actually executed, and whether the evidence or authority basis later changed.
 
-AI is not mainly creating new vulnerabilities. It is resurfacing **old, well-known security weakness classes** inside AI-enabled business workflows, faster, quieter, and harder to see:
-
-| Weakness class | Reference | AI workflow expression |
-|---|---|---|
-| Time-of-check / time-of-use (TOCTOU) | CWE-367 | A human approves one context; the agent executes later against a changed state |
-| Confused deputy | CWE-441 | An agent uses its tool-level authority on behalf of a requester who lacks that authority |
-| Broken / missing authorization | CWE-285, CWE-862 | Tool access exceeds decision authority; approval is granted at workflow level, not action level |
-| Privilege drift | Least-privilege failure | The agent accumulates CRM, email, billing, database access; nobody redraws the trust boundary |
-| Fail-open design | Insecure defaults | Reviewer unavailable means approval passes; logs fail means execution continues |
-| Weak audit trail / repudiation | STRIDE-R, logging failure | No prompt record, no model version, no rationale; the decision cannot be reconstructed |
-| Separation-of-duties failure | SoD control failure | The same agent recommends, executes, and summarizes its own action |
-| Supply-chain / context poisoning | OWASP LLM03/LLM04 | Vendor models, RAG corpora, and tool metadata silently shape decisions |
-| Excessive agency | OWASP LLM06 | Autonomy and permissions far beyond what the task requires |
-| Business logic flaw | AppSec classic | Individually permitted actions chain into a prohibited outcome |
-
-Every one of these classes has a decades-old name. What is new is the execution surface.
+For the full weakness-class and regulatory crosswalk, see [`docs/reference-mappings.md`](./docs/reference-mappings.md).
 
 ---
 
@@ -172,6 +176,8 @@ schemas/action-request.schema.json
 ```
 
 Worked examples are in [`examples/`](./examples/). The test suite validates the examples against the machine schemas.
+
+Start with the visual producer-to-consumer walkthrough: [`docs/case-study-loan-denial.md`](./docs/case-study-loan-denial.md).
 
 Eight blocks:
 
@@ -307,43 +313,11 @@ The standalone package test count is intentionally small; the parent LumiRosh re
 
 ---
 
-## Regulatory mapping
+## Reference mappings
 
-These frameworks ask for oversight and record-keeping. The receipt is the artifact that demonstrates it rather than merely documents it.
+The receipt maps its fields to familiar security and governance questions: TOCTOU, confused deputy, broken authorization, fail-open behavior, separation of duties, and replayability.
 
-| Framework | What it asks | What the receipt proves |
-|---|---|---|
-| **NIST AI RMF** (Govern / Map / Measure / Manage) | Accountability structures, risk evidence, enforceable controls | Who had authority, what evidence existed, what control actually gated the action |
-| **EU AI Act** | Record-keeping/logging, technical documentation, human oversight | The decision path can be reconstructed; the human had context, authority, and stop-power |
-| **India MeitY AI Governance Guidelines (7 Sutras)** | Human oversight that is demonstrated, not documented; deployer accountability | A live, replayable record that a human could see, understand, stop, and own the decision |
-| **OWASP Top 10 for LLM Applications** | Mitigations for excessive agency, injection, poisoning | Where model output crossed a trust boundary and under whose authority |
-
-The question regulators are converging on is the question this schema answers:
-
-> What did the human check? What did the system use? What changed in between?
-
----
-
-## Fourteen diagnostic questions
-
-For any AI-enabled workflow:
-
-1. What did the human check?
-2. What did the system use?
-3. What changed between check and use?
-4. Who requested the action?
-5. Did the requester have authority?
-6. Whose credential/tool executed it?
-7. What evidence was visible at approval time?
-8. What action was actually executed?
-9. Was the action within approval scope?
-10. Who owns the consequence?
-11. Can the decision be replayed?
-12. Where does the workflow fail open?
-13. Is separation of duties preserved?
-14. What receipt proves all of this?
-
-If a workflow cannot answer these, the decision was not governed. It was performed.
+See [`docs/reference-mappings.md`](./docs/reference-mappings.md) for the full security crosswalk, regulatory mapping, and fourteen workflow diagnostic questions.
 
 ---
 
