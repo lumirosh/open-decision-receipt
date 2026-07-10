@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 authors = [{name = "LumiRosh"}]
-keywords = ["ai-governance", "audit", "decision-records", "infosec", "mcp"]
+keywords = ["decision-receipt", "open-decision-receipt", "ai-governance", "audit", "decision-records", "infosec", "mcp"]
 dependencies = [
   "PyYAML>=6.0",
   "jsonschema>=4.0"

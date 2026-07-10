@@ -22,7 +22,7 @@ Identity binding belongs in the integrating system.
 
 A receipt records what evidence was visible and what basis was checked. It does not prove that the original evidence was true, complete, or honestly produced.
 
-Bad evidence with a good receipt is still bad evidence. The receipt makes that dependency visible.
+Bad evidence with a good receipt is still bad evidence. The receipt makes that dependency visible. Structured-query evidence can record a query's provenance and a result commitment, but it does not prove the query backend, source material, or result was true. See [`future-directions.md`](./future-directions.md).
 
 ## Human approval is not automatically good approval
 

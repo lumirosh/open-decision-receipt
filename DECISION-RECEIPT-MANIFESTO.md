@@ -1,10 +1,6 @@
 # Decision Receipt Manifesto
 
-AI used to create outputs.
-
-Now AI participates in decisions.
-
-Soon, AI will execute actions directly through tools, scripts, APIs, agents, and workflows.
+AI has moved from generating outputs to participating in decisions. It is beginning to execute actions through tools, scripts, APIs, agents, and workflows.
 
 That shift changes the proof problem.
 

@@ -2,6 +2,8 @@
 
 A Decision Receipt does not replace security controls, policy systems, or governance programs. It makes the authority and evidence basis around a consequential action inspectable.
 
+Use this page to trace receipt fields to a security failure class, a governance framework question, or a diagnostic question that a consequential workflow should answer.
+
 ## Security weakness classes
 
 | Weakness class | Reference | AI workflow expression | Receipt fields |

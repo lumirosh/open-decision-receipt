@@ -17,7 +17,16 @@ request:
 check:                                 # TIME OF CHECK
   checked_by: person | model | workflow
   checked_at: timestamp
-  evidence_seen: [source_ids]          # exactly what was visible at check time
+  evidence_seen:                    # labels or structured-query evidence items
+    - source_id
+    - type: structured_query
+      query_language: string
+      query: string                  # parameterized where sensitive identifiers apply
+      result_hash: sha256:hex        # commitment to canonical result artifact
+      canonicalization: string
+      queried_at: timestamp
+      source_snapshot_id: string | null
+      result_artifact_ref: string | null
   context_hash_at_check: hash          # fingerprint of the checked state
   assumptions: [strings]
   dissenting_signals: [strings]        # anything that argued against the action

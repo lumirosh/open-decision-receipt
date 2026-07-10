@@ -80,6 +80,48 @@ def test_seal_refuses_to_seal_if_basis_changes_between_check_and_use(bundle_stor
     assert any("TOCTOU" in finding["finding"] for finding in receipt.findings)
 
 
+def test_policy_authorized_containment_seals_then_reopens_when_intel_is_retracted(tmp_path):
+    fixture = Path(__file__).resolve().parent / "fixtures" / "soc_automated_containment.yaml"
+    bundle_dir = tmp_path / "bundles"
+    bundle_dir.mkdir()
+    (bundle_dir / "soc_automated_containment.yaml").write_text(fixture.read_text())
+    bundles = BundleStore(bundle_dir)
+    receipts = ReceiptStore(tmp_path / "receipts")
+    request = {
+        "actor": "containment_agent_v2",
+        "workflow": "soc_automated_containment",
+        "action": "isolate_host",
+        "risk_class": "high",
+        "context_refs": [
+            "threat_intel_indicator",
+            "login_anomaly_score",
+            "asset_criticality",
+        ],
+        "params": {"host": "HOST-7734"},
+    }
+
+    receipt = verify_action(request, bundles)
+    assert receipt.status == "authorized"
+    assert receipt.authority["approval_method"] == "policy"
+    assert receipt.boundary["failure_mode"] == "fail_closed"
+
+    receipt = seal(receipt, {"executed_by": "containment_agent_v2", "execution_result": "success"}, bundles)
+    assert receipt.status == SEALED
+    receipts.save(receipt)
+
+    path = bundle_dir / "soc_automated_containment.yaml"
+    bundle = yaml.safe_load(path.read_text())
+    bundle["evidence_sources"]["threat_intel_indicator"]["version"] += 1
+    bundle["evidence_sources"]["threat_intel_indicator"]["content"] = "TI-88213 RETRACTED: false positive signature collision."
+    path.write_text(yaml.safe_dump(bundle))
+
+    reopened = watch(receipts, bundles)
+    assert [r.decision_id for r in reopened] == [receipt.decision_id]
+    reopened_receipt = receipts.load(receipt.decision_id)
+    assert reopened_receipt.status == REOPENED
+    assert any("basis drift" in finding["finding"] for finding in reopened_receipt.findings)
+
+
 def test_cli_verify_action_lifecycle_uses_configurable_paths(tmp_path, bundle_store, monkeypatch, deploy_request, capsys):
     import dam_verify.cli as cli
 

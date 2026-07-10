@@ -1,0 +1,83 @@
+# Worked example: policy-authorized SOC host containment
+# Illustrative. This shows a narrow, reversible Tier-1 containment action that
+# is pre-authorized by a runbook, then reopened when its evidence basis changes.
+# It does not claim that every high-risk SOC action is human-free.
+
+decision_id: DR-2026-07-10-ir001
+workflow: soc_automated_containment
+decision_type: isolate_host
+risk_class: high
+
+request:
+  requester: containment_agent_v2
+  requester_authority: "runbook://soc-containment#tier1-auto-isolate-v1"
+  requested_action: isolate host HOST-7734 from network
+  requested_at: "2026-07-10T02:14:00Z"
+
+check:
+  checked_by: dam.verify_action
+  checked_at: "2026-07-10T02:14:03Z"
+  evidence_seen:
+    - threat_intel_indicator_TI-88213
+    - login_anomaly_score_0.94
+    - asset_criticality_tier_2
+  context_hash_at_check: "sha256:4f1a..."
+  assumptions:
+    - TI-88213 was current at check time
+    - host classification remained tier 2
+  dissenting_signals:
+    - user reported international travel during the same week
+
+recommendation:
+  recommended_by: model
+  model_version: containment-triage-4.2.0
+  recommendation: isolate_host
+  confidence: 0.94
+  rationale: "credential-compromise indicator plus anomalous login pattern meets Tier-1 isolation criteria"
+
+authority:
+  approver: soc_containment_runbook_v1
+  approval_method: policy
+  approved_at: "2026-07-10T02:14:03Z"
+  authority_basis: "runbook://soc-containment#tier1-auto-isolate-v1"
+  approval_scope: "reversible network isolation only; no deletion, deprovisioning, or external notification"
+  separation_of_duties_ok: true
+
+execution:
+  executed_by: containment_agent_v2
+  executed_at: "2026-07-10T02:14:09Z"
+  tool_or_system: edr_isolation_api_v3
+  credential_used: service_token_containment_scoped
+  actual_action: "network isolation applied to HOST-7734"
+  context_hash_at_execution: "sha256:4f1a..."
+  execution_result: success
+
+boundary:
+  allowed_actions:
+    - isolate host from network
+    - alert on-call analyst
+    - open incident ticket
+  denied_actions:
+    - delete data or logs
+    - deprovision user account
+    - notify customer or external party
+  failure_mode: fail_closed
+  rollback_path: manual_reconnect_after_tier3_review
+
+accountability:
+  accountable_owner: soc_lead_on_call
+  review_required_by: "2026-07-10T10:14:00Z"
+  appeal_or_escalation_path: tier3_incident_review_queue
+
+receipt:
+  prompt_id: prm_60214
+  model_output_id: out_88213
+  workflow_run_id: run_HOST-7734-002
+  external_event_ids:
+    - edr_isolation_event_HOST-7734
+  replayable: true
+  integrity_hash: "sha256:a02f..."
+
+# Later drift: the threat-intel provider retracts TI-88213 as a false positive.
+# The runnable test and SOC bundle demonstrate that watch() reopens the sealed
+# receipt when this evidence source changes.

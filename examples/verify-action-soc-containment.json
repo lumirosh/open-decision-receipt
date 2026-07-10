@@ -1,0 +1,15 @@
+{
+  "actor": "containment_agent_v2",
+  "workflow": "soc_automated_containment",
+  "action": "isolate_host",
+  "risk_class": "high",
+  "context_refs": [
+    "threat_intel_indicator",
+    "login_anomaly_score",
+    "asset_criticality"
+  ],
+  "params": {
+    "host": "HOST-7734",
+    "scope": "network_isolation_only"
+  }
+}

@@ -8,7 +8,9 @@ Core invariants:
   1. No authority bundle -> UNKNOWN (never fail open).
   2. Action outside the actor's allowed set -> DENIED.
   3. Missing evidence -> NEEDS_HUMAN_REVIEW, never silently authorized.
-  4. High-risk always crosses the human gate; approval writes scoped authority.
+  4. High-risk crosses the human gate unless a versioned authority bundle
+     explicitly pre-authorizes a narrow action surface; policy exceptions stay
+     bounded and are still replayable and watchable.
   5. seal() refuses to seal when the check-time and execution-time context
      hashes diverge: the receipt REOPENS instead. That is the TOCTOU catch.
   6. watch() reopens sealed receipts whose evidence basis changed after seal.
@@ -172,7 +174,8 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         r.flag(f"missing evidence: {missing}")
         return r
 
-    # 5. Human gate: high risk means a human signs authority into the object.
+    # 5. Human gate: default for high-risk. A bundle can pre-authorize only
+    # a deliberately bounded policy action by setting requires_human: false.
     if rule.get("requires_human", True):
         r.status = NEEDS_HUMAN_REVIEW
         r.flag("human approval required before authorization (by rule)")

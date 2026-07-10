@@ -59,8 +59,15 @@ separate reviewer recorded evidence, and the workflow proved it executed
 against the same context.
 ```
 
+## Structured evidence
+
+The loan-denial receipt mixes plain evidence labels with a `structured_query` item for the income-verification conclusion. It records a parameterized query, source snapshot, engine version, canonicalization method, and a hash commitment to a protected result artifact. That makes the evidence provenance inspectable without embedding applicant documents in a public example.
+
+The reference implementation does not re-run that query. See [`future-directions.md`](./future-directions.md) for the boundary and a future re-verification path.
+
 ## Compare the worked examples
 
 - [`loan-denial-receipt.yaml`](../examples/loan-denial-receipt.yaml): working-as-intended, replayable high-risk denial.
+- [`case-study-soc-containment.md`](./case-study-soc-containment.md): policy-authorized, reversible SOC containment that reopens when its threat-intel basis changes.
 - [`claim-payout-receipt.yaml`](../examples/claim-payout-receipt.yaml): detects a context change between check and use.
 - [`gift-card-fraud-no-receipt.yaml`](../examples/gift-card-fraud-no-receipt.yaml): shows the failure mode when no receipt exists.

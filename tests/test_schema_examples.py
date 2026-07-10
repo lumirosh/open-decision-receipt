@@ -1,3 +1,4 @@
+import copy
 import json
 from pathlib import Path
 
@@ -32,6 +33,7 @@ def test_action_request_schema_is_valid_json_schema():
         ROOT / "examples" / "claim-payout-receipt.yaml",
         ROOT / "examples" / "gift-card-fraud-no-receipt.yaml",
         ROOT / "examples" / "loan-denial-receipt.yaml",
+        ROOT / "examples" / "incident-response-containment-receipt.yaml",
     ],
 )
 def test_receipt_examples_validate_against_schema(example):
@@ -71,6 +73,21 @@ def test_receipt_schema_rejects_null_decision_id():
     receipt["decision_id"] = None
     errors = list(Draft202012Validator(load_json(RECEIPT_SCHEMA)).iter_errors(receipt))
     assert any("None is not of type 'string'" in error.message for error in errors)
+
+
+def test_receipt_schema_accepts_mixed_plain_and_structured_evidence():
+    receipt = load_yaml(ROOT / "examples" / "loan-denial-receipt.yaml")
+    errors = list(Draft202012Validator(load_json(RECEIPT_SCHEMA)).iter_errors(receipt))
+    assert errors == []
+    assert isinstance(receipt["check"]["evidence_seen"][0], str)
+    assert receipt["check"]["evidence_seen"][-1]["type"] == "structured_query"
+
+
+def test_receipt_schema_rejects_malformed_structured_evidence_hash():
+    receipt = copy.deepcopy(load_yaml(ROOT / "examples" / "loan-denial-receipt.yaml"))
+    receipt["check"]["evidence_seen"][-1]["result_hash"] = "sha256:truncated"
+    errors = list(Draft202012Validator(load_json(RECEIPT_SCHEMA)).iter_errors(receipt))
+    assert errors
 
 
 def test_action_request_schema_rejects_invalid_risk_class():

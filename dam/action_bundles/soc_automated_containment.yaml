@@ -1,0 +1,24 @@
+# Illustrative SOC authority bundle. A deliberate policy exception permits only
+# reversible Tier-1 network isolation. Any destructive or external action remains
+# denied. The engine remains fail-closed if the bundle, rule, or evidence is absent.
+workflow: soc_automated_containment
+version: 1
+authority_rules:
+  - actors: [containment_agent_v2]
+    risk_classes: [high]
+    allowed_actions: [isolate_host]
+    denied_actions: [delete_data, delete_logs, deprovision_account, notify_external_party]
+    # Pre-authorized only because isolation is reversible and tightly bounded.
+    requires_human: false
+    basis: "runbook://soc-containment#tier1-auto-isolate-v1"
+    required_evidence: [threat_intel_indicator, login_anomaly_score, asset_criticality]
+evidence_sources:
+  threat_intel_indicator:
+    version: 1
+    content: "TI-88213 ACTIVE: credential-compromise indicator, confidence high."
+  login_anomaly_score:
+    version: 1
+    content: "HOST-7734 anomaly score 0.94; impossible-travel pattern observed."
+  asset_criticality:
+    version: 1
+    content: "HOST-7734 classification: tier 2. Isolation is reversible under SOC runbook."

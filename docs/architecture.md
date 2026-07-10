@@ -5,18 +5,18 @@ A Decision Receipt is the portable authority and evidence object around a conseq
 ## 30-second flow
 
 ```mermaid
-flowchart LR
-    A[AI or agent proposes an action] --> B[Evidence and policy checked]
-    B --> C{Authority resolved?}
+flowchart TB
+    A[AI or agent<br/>proposes action] --> B[Evidence and policy<br/>are checked]
+    B --> C{Authority<br/>resolved?}
     C -->|No basis| D[Unknown or denied]
-    C -->|Human review needed| E[Human signs scoped authority]
-    C -->|Policy-authorized| F[Authorized]
+    C -->|Human review needed| E[Human signs scoped<br/>authority]
+    C -->|Narrow policy authority| F[Bounded action<br/>is authorized]
     E --> F
-    F --> G[Workflow executes bounded action]
-    G --> H{Check context equals use context?}
-    H -->|Yes| I[Seal replayable receipt]
-    H -->|No| J[Reopen for re-verification]
-    I --> K[Watch for later basis drift]
+    F --> G[Workflow executes<br/>within the boundary]
+    G --> H{Check context equals<br/>use context?}
+    H -->|Yes| I[Seal receipt]
+    H -->|No| J[Reopen for<br/>re-verification]
+    I --> K[Watch evidence and<br/>authority basis]
     K -->|Basis changed| J
 ```
 
@@ -77,8 +77,10 @@ model recommendation
 | Need | Document |
 |---|---|
 | See one high-risk decision end to end | [`case-study-loan-denial.md`](./case-study-loan-denial.md) |
+| See policy-authorized containment reopen on evidence drift | [`case-study-soc-containment.md`](./case-study-soc-containment.md) |
 | Understand object states and lifecycle verbs | [`lifecycle.md`](./lifecycle.md) |
 | Connect receipts to MCP tool-use boundaries | [`mcp-verified-action-bridge.md`](./mcp-verified-action-bridge.md) |
 | Review weakness classes and framework mappings | [`reference-mappings.md`](./reference-mappings.md) |
 | Run the reference CLI | [`quickstart.md`](./quickstart.md) |
+| Review structured-query evidence direction | [`future-directions.md`](./future-directions.md) |
 | Understand explicit non-claims | [`limitations.md`](./limitations.md) |

@@ -20,8 +20,18 @@ check:
   evidence_seen:
     - application_LN-88213
     - credit_score_report_v2
-    - applicant_income_verification
     - lending_policy_v4_section_7.2
+    - type: structured_query
+      query_language: AISQL
+      query: "AI_FILTER(income_verification_docs, 'reported income matches verification documents within 5% tolerance') WHERE application_id = :application_id"
+      result_summary: "Income verification matched the reported income within tolerance."
+      result_hash: "sha256:38d10244c7589e8ef88b647492cdceba59502904aa9e2661287fbf5c60b4404b"
+      canonicalization: json-rfc8785
+      queried_at: "2026-07-10T09:38:00Z"
+      source_system: income_verification_service_v2
+      source_snapshot_id: income-verification-snapshot-2026-07-10
+      query_engine_version: illustrative-aisql-engine-v1
+      result_artifact_ref: "evidence://loan-underwriting/LN-88213/income-verification-result-v1"
   context_hash_at_check: "sha256:7ab2..."
   assumptions:
     - applicant identity verified at intake
