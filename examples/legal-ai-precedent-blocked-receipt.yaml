@@ -1,0 +1,95 @@
+# Worked legal-control example derived from a public judgment.
+#
+# The proposed precedent below is intentionally generic. It is not one of the
+# case names discussed in the judgment. This example demonstrates the control
+# that should apply to any AI-suggested authority before it enters a pleading
+# or adjudicatory determination.
+#
+# Primary source:
+#   Supreme Court of India, Pooja Ramesh Singh v. Jammu and Kashmir Bank Ltd.
+#   & Anr., 2026 INSC 668, Civil Appeal No. 11950 of 2025, decided 2 July 2026.
+#   https://api.sci.gov.in/supremecourt/2025/52338/52338_2025_5_1501_71939_Judgement_02-Jul-2026.pdf
+
+decision_id: legal-precedent-verification-2026-001
+workflow: ai_assisted_legal_research
+decision_type: admit_precedent_into_legal_reasoning
+risk_class: critical
+
+request:
+  requester: legal_research_assistant
+  requester_authority: research_support_only
+  requested_action: "Use an AI-suggested precedent to support a legal proposition"
+  requested_at: "2026-07-02T09:00:00Z"
+
+check:
+  checked_by: qualified_legal_reviewer
+  checked_at: "2026-07-02T09:15:00Z"
+  evidence_seen:
+    - "AI-generated case name and proposition"
+    - "Search of the official court judgment repository"
+    - "Search of recognised legal research databases"
+    - "Attempt to retrieve the full judgment text and cited paragraph"
+  context_hash_at_check: null
+  assumptions:
+    - "An AI-generated citation is a research lead, not legal authority"
+    - "Existence and proposition must both be verified against a primary source"
+  dissenting_signals:
+    - "No official judgment record found"
+    - "No stable citation, case number, court, date, or full text established"
+    - "The stated proposition cannot be traced to an authoritative paragraph"
+
+recommendation:
+  recommended_by: legal_research_assistant
+  model_version: unspecified_ai_research_tool
+  recommendation: "Include the suggested precedent"
+  confidence: null
+  rationale: "The generated case name and proposition appeared responsive to the research question"
+
+authority:
+  approver: qualified_legal_reviewer
+  approval_method: none
+  approved_at: null
+  authority_basis: "Professional duty to verify authorities before use"
+  approval_scope: "No use in a pleading, submission, order, judgment, or legal advice until primary-source verification succeeds"
+  separation_of_duties_ok: true
+
+execution:
+  executed_by: legal_workflow_gate
+  executed_at: "2026-07-02T09:16:00Z"
+  tool_or_system: precedent_admission_control
+  credential_used: reviewer_role
+  actual_action: "Blocked the proposed precedent from entering legal reasoning"
+  context_hash_at_execution: null
+  execution_result: blocked_unverified_authority
+
+boundary:
+  allowed_actions:
+    - "retain as an unverified research lead"
+    - "search for a real authority supporting the proposition"
+    - "escalate to a qualified legal reviewer"
+  denied_actions:
+    - "cite the proposed precedent"
+    - "quote or paraphrase it as law"
+    - "rely on it in a pleading, submission, order, judgment, or legal advice"
+  failure_mode: fail_closed
+  rollback_path: "Remove the material, disclose the error if already circulated, and restart research from verified primary sources"
+
+accountability:
+  accountable_owner: supervising_legal_professional
+  review_required_by: qualified_legal_reviewer
+  appeal_or_escalation_path: "senior counsel, judicial officer, or designated professional-responsibility authority"
+
+receipt:
+  prompt_id: unavailable_in_public_example
+  model_output_id: unavailable_in_public_example
+  workflow_run_id: legal-research-gate-2026-001
+  external_event_ids:
+    - "2026-INSC-668"
+  replayable: true
+  integrity_hash: null
+
+# RESULT
+# The receipt does not prove that the suggested precedent is false. It proves
+# that the legal workflow had insufficient authoritative evidence to use it.
+# The safe and accountable outcome is therefore to block, retain as unverified,
+# and escalate rather than convert plausibility into legal authority.

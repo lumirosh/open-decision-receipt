@@ -32,6 +32,7 @@ def test_action_request_schema_is_valid_json_schema():
     [
         ROOT / "examples" / "claim-payout-receipt.yaml",
         ROOT / "examples" / "gift-card-fraud-no-receipt.yaml",
+        ROOT / "examples" / "legal-ai-precedent-blocked-receipt.yaml",
         ROOT / "examples" / "loan-denial-receipt.yaml",
         ROOT / "examples" / "incident-response-containment-receipt.yaml",
     ],
