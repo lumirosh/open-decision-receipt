@@ -18,16 +18,18 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+adk = ["google-adk==2.4.0"]
 
 [project.scripts]
 dam-verify = "dam_verify.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["dam_verify*"]
+include = ["dam_verify*", "integrations*"]
 exclude = ["schemas*", "tests*"]
 
 [tool.setuptools.package-data]
-"*" = []
+"integrations.google_adk.loan_denial" = ["*.yaml", "*.json"]
+"integrations.google_adk.soc_analyst_containment" = ["*.yaml", "*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

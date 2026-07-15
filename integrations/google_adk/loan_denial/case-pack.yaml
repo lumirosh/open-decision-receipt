@@ -1,0 +1,26 @@
+workflow: loan_denial_reference
+version: 1
+human_gate:
+  allowed_roles: [loan_officer, lending_manager]
+  decisions: [approve, reject, escalate]
+authority_rules:
+  - actors: [credit_scoring_model]
+    risk_classes: [high]
+    allowed_actions: [issue_denial_notice]
+    denied_actions: [approve_loan, modify_credit_terms, change_applicant_data]
+    requires_human: true
+    basis: "sample-policy://lending-authority-v1#denial"
+    required_evidence: [applicant_profile_ref, credit_report, financial_statement, transaction_history, alternative_data_provenance, lending_policy]
+evidence_sources:
+  applicant_profile_ref: {version: 1, content: "Synthetic protected applicant profile reference."}
+  credit_report: {version: 2, content: "Synthetic current credit report."}
+  financial_statement: {version: 1, content: "Synthetic verified financial statement."}
+  transaction_history: {version: 4, content: "Synthetic 12-month transaction summary."}
+  alternative_data_provenance: {version: 1, content: "Synthetic consented rent and utility evidence with provenance."}
+  lending_policy: {version: 1, content: "Sample threshold policy requiring denial or exception review."}
+accountability:
+  accountable_owner_role: lending_manager
+  appeal_or_escalation_path: applicant_reconsideration_queue
+reference_only:
+  synthetic_data: true
+  production_ready: false

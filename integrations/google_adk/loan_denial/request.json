@@ -1,0 +1,14 @@
+{
+  "actor": "credit_scoring_model",
+  "actor_authority": "model_recommendation_only",
+  "workflow": "loan_denial_reference",
+  "action": "issue_denial_notice",
+  "risk_class": "high",
+  "context_refs": ["applicant_profile_ref", "credit_report", "financial_statement", "transaction_history", "alternative_data_provenance", "lending_policy"],
+  "params": {
+    "subject_ref": "applicant://synthetic/LN-88213",
+    "recommendation": "deny",
+    "confidence": 0.79,
+    "rationale": "debt-to-income ratio exceeds sample policy threshold"
+  }
+}

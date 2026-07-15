@@ -1,0 +1,23 @@
+workflow: soc_analyst_containment_reference
+version: 1
+human_gate:
+  allowed_roles: [soc_analyst, incident_commander]
+  decisions: [approve, reject, escalate]
+authority_rules:
+  - actors: [threat_detection_agent]
+    risk_classes: [critical]
+    allowed_actions: [isolate_endpoint]
+    denied_actions: [wipe_endpoint, disable_identity, publish_incident]
+    requires_human: true
+    basis: "sample-policy://soc-containment-v1#analyst-gate"
+    required_evidence: [alert, endpoint_inventory, containment_policy]
+evidence_sources:
+  alert: {version: 3, content: "Synthetic credential-theft alert with detector provenance."}
+  endpoint_inventory: {version: 1, content: "Synthetic endpoint ownership and criticality record."}
+  containment_policy: {version: 2, content: "Sample policy permits reversible isolation after analyst review."}
+accountability:
+  accountable_owner_role: incident_commander
+  appeal_or_escalation_path: incident_command_queue
+reference_only:
+  synthetic_data: true
+  production_ready: false

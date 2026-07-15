@@ -1,0 +1,14 @@
+{
+  "actor": "threat_detection_agent",
+  "actor_authority": "recommendation_only",
+  "workflow": "soc_analyst_containment_reference",
+  "action": "isolate_endpoint",
+  "risk_class": "critical",
+  "context_refs": ["alert", "endpoint_inventory", "containment_policy"],
+  "params": {
+    "subject_ref": "endpoint://synthetic/WS-1042",
+    "recommendation": "isolate",
+    "confidence": 0.94,
+    "rationale": "synthetic credential-theft behavior detected"
+  }
+}

@@ -66,6 +66,7 @@ For a narrated walkthrough with real workflow scenarios:
 |---|---|
 | [Loan denial](./docs/case-study-loan-denial.md) | Model recommendation, human evidence review, manager authority, bounded execution. |
 | [SOC containment](./docs/case-study-soc-containment.md) | A narrow policy-authorized host isolation reopens when the threat intelligence is retracted. |
+| [Google ADK workflows](./integrations/google_adk/README.md) | Run separate human-gated loan and SOC application workflows that produce sealed receipts. |
 | [Quickstart](./docs/quickstart.md) | Step-by-step: verify, approve, seal, replay, and watch one high-risk action locally. |
 
 ## Design position

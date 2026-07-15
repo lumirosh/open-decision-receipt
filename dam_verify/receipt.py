@@ -3,10 +3,11 @@
 Mirrors the public schema (lumirosh/open-decision-receipt) and adds the
 lifecycle status. A receipt is a state machine, not a document:
 
-    DRAFT -> AUTHORIZED -> EXECUTING -> SEALED -> REOPENED -> (re-verify)
-                |                                    ^
-                +-- DENIED / NEEDS_HUMAN_REVIEW      |
-                                          watcher / seal-time hash mismatch
+    DRAFT -> AUTHORIZED -> SEALED -> REOPENED -> (re-verify)
+       |          |                    ^
+       |          +-- seal-time drift  |
+       +-- DENIED / ESCALATED / NEEDS_HUMAN_REVIEW
+                              watcher detects basis drift
 """
 from __future__ import annotations
 
@@ -22,21 +23,23 @@ def now_iso() -> str:
 
 
 def sha256_of(obj) -> str:
+    """Return a full SHA-256 digest for durable integrity evidence."""
     canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"))
-    return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()[:16]
+    return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
 
 # Lifecycle states
 DRAFT = "draft"
 AUTHORIZED = "authorized"
 DENIED = "denied"
+ESCALATED = "escalated"
 NEEDS_HUMAN_REVIEW = "needs_human_review"
 UNKNOWN = "unknown"
 SEALED = "sealed"
 REOPENED = "reopened"
 REVOKED = "revoked"
 
-TERMINAL_NEGATIVE = {DENIED, REVOKED}
+TERMINAL_NEGATIVE = {DENIED, ESCALATED, REVOKED}
 
 
 @dataclass
