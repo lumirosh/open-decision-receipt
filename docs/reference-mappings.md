@@ -28,6 +28,34 @@ Use this page to trace receipt fields to a security failure class, a governance 
 | India MeitY AI Governance Guidelines | Demonstrable human oversight and deployer accountability | a replayable record that a human could see, understand, stop, and own the decision |
 | OWASP Top 10 for LLM Applications | Mitigations for excessive agency, injection, and poisoning | where model output crossed a trust boundary and under whose authority |
 
+## Conformance levels
+
+A Decision Receipt can be validated at three levels. Each level is additive: L2 implies L1; L3 implies L1 and L2.
+
+| Level | Name | What it proves | What validates |
+|---|---|---|---|
+| **L1** | Documented | Required fields are present and schema-valid. The receipt is a well-formed authority object. | `dam-verify validate <receipt>` passes without schema errors |
+| **L2** | Bound | Check-time and use-time context hashes are present. A reviewer can confirm whether the hashes match. | L1 + `dam-verify chain` reports `chain intact: True` |
+| **L3** | Governed | The receipt is managed through a verified-action lifecycle: authority is resolved before execution, check-time and use-time are compared at seal, and a watcher reopens the receipt when its evidence or authority basis changes. | L2 + a sealed receipt reopens in `dam-verify watch` after its evidence basis changes |
+
+The reference implementation can produce receipts at any level. Most governance workflows will operate at L2. Regulated, high-consequence workflows should target L3.
+
+---
+
+## Conceptual lineage
+
+A Decision Receipt is not an isolated invention. It sits within a known line of accountability structures.
+
+**Proof-Carrying Code (PCC).** In PCC, a program ships with a formal proof that it satisfies a stated safety policy. A verifier checks the proof independently before trusting the program. The Decision Receipt applies the same pattern to decisions instead of code: the receipt carries the evidence and authority that a verifier can inspect without trusting the original decision-maker.
+
+**Time-of-Check to Time-of-Use (TOCTOU / CWE-367).** The canonical operating-system race condition — check a credential at time T₀, use it at T₁ when the world may have changed — maps directly to AI-assisted workflows. A human reviews evidence at check time; the system executes at use time under potentially different conditions. The receipt records both contexts so the gap becomes visible.
+
+**Software Bill of Materials (SBOM).** An SBOM lists what went into a software artifact. A Decision Receipt lists what went into a consequential decision — evidence, authority, policy, scope, execution — and binds them to a verifiable object.
+
+**OAuth token model.** An authorization server issues a token that a consumer can present to a resource server. The resource server trusts the token without knowing the user. A Decision Receipt is the equivalent token for a decision: it lets a party who was not present accept that an action was authorized, the same way a service accepts a signed identity assertion.
+
+These analogies are conceptual, not conformance claims. They exist to make the receipt legible to security researchers, governance architects, and platform engineers who already work with these patterns.
+
 ## Fourteen diagnostic questions
 
 1. What did the human check?

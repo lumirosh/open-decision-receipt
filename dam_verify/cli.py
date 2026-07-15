@@ -1,6 +1,7 @@
 """dam verify-action CLI - the cert-drift demo surface.
 
 Usage:
+    python -m dam_verify.cli validate <your-receipt.yaml>
     python -m dam_verify.cli verify   examples/verify-action-deploy.json
     python -m dam_verify.cli approve  <decision_id> --approver operator
     python -m dam_verify.cli seal     <decision_id> --result success
@@ -18,6 +19,9 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+from jsonschema import Draft202012Validator
+
 from .engine import BundleStore, ReceiptStore, verify_action, approve, seal, watch
 from .okf import promote_receipt_bundle
 
@@ -25,6 +29,7 @@ PROJECT = Path(__file__).resolve().parent.parent
 DEFAULT_BUNDLES_DIR = PROJECT / "dam" / "action_bundles"
 DEFAULT_RECEIPTS_DIR = PROJECT / "data" / "action_receipts"
 DEFAULT_OKF_BUNDLES_DIR = PROJECT / "dam" / "bundles"
+RECEIPT_SCHEMA = PROJECT / "schemas" / "decision-receipt.schema.json"
 
 
 def _print(r):
@@ -59,6 +64,7 @@ def main(argv=None):
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
+    vl = sub.add_parser("validate"); vl.add_argument("receipt_file")
     v = sub.add_parser("verify");  v.add_argument("action_file")
     a = sub.add_parser("approve"); a.add_argument("decision_id"); a.add_argument("--approver", required=True)
     s = sub.add_parser("seal");    s.add_argument("decision_id"); s.add_argument("--result", default="success")
@@ -73,7 +79,9 @@ def main(argv=None):
     bundles = BundleStore(Path(args.bundles_dir))
     receipts = ReceiptStore(Path(args.receipts_dir))
 
-    if args.cmd == "verify":
+    if args.cmd == "validate":
+        return _validate(args.receipt_file)
+    elif args.cmd == "verify":
         req = json.loads(Path(args.action_file).read_text())
         r = verify_action(req, bundles)
         receipts.save(r)
@@ -121,6 +129,58 @@ def main(argv=None):
             print(f"Promoted receipt {r.decision_id} -> {out['path']}")
             print("  state: verified | verification: dam=verified user=approved")
     return 0
+
+
+def _validate(receipt_path: str) -> int:
+    """Validate a receipt file against the schema and report conformance.
+
+    Returns exit code 0 when the file passes schema validation;
+    non-zero (2) when there are validation errors.  Named gaps are
+    printed so the caller can see exactly what is missing.
+
+    The receipt file may be YAML or JSON.
+    """
+    path = Path(receipt_path)
+    if not path.exists():
+        print(f"not found: {receipt_path}")
+        return 1
+
+    raw = path.read_text()
+    try:
+        doc = yaml.safe_load(raw)
+    except Exception:
+        try:
+            doc = json.loads(raw)
+        except Exception:
+            print(f"cannot parse as YAML or JSON: {receipt_path}")
+            return 1
+
+    schema = json.loads(RECEIPT_SCHEMA.read_text())
+    validator = Draft202012Validator(schema)
+    errors = sorted(validator.iter_errors(doc), key=lambda e: str(e.path))
+
+    if not errors:
+        hashes_ok = _report_conformance(doc)
+        print("PASS: schema valid")
+        if hashes_ok:
+            print("conformance: L2 Bound  (hashes present)")
+        else:
+            print("conformance: L1 Documented  (schema-valid, hashes absent or unverified)")
+        return 0
+
+    print(f"FAIL: {len(errors)} validation error(s)")
+    for e in errors:
+        path_str = " -> ".join(str(p) for p in e.path) if e.path else "(root)"
+        print(f"  {path_str}: {e.message}")
+    print("conformance: below L1  (schema validation failed)")
+    return 2
+
+
+def _report_conformance(doc: dict) -> bool:
+    """Return True when check-time and execution-time hashes are present."""
+    chk = doc.get("check", {})
+    exe = doc.get("execution", {})
+    return bool(chk.get("context_hash_at_check") and exe.get("context_hash_at_execution"))
 
 
 def replay(r) -> str:

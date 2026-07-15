@@ -1,5 +1,7 @@
 # Case Study: AI-Assisted Loan Denial
 
+> An underwriter declines a loan application. Six months later the applicant disputes the decision. The bank must prove what was checked, who had authority, and that nothing changed between review and execution. Without a receipt, all they have is a model output, a click log, and a denial letter.
+
 Illustrative only. This worked example shows how a high-risk credit decision can remain replayable without treating a human click as sufficient evidence.
 
 Source object: [`../examples/loan-denial-receipt.yaml`](../examples/loan-denial-receipt.yaml).

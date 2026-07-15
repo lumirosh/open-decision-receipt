@@ -2,14 +2,35 @@
 
 **A small, open reference for proving that an AI-enabled action was authorized, bounded, and still valid when it ran.**
 
-A Decision Receipt is a portable record of the evidence, authority, scope, execution, and accountable owner around a consequential action.
-
-It is for teams building AI-assisted workflows that can approve, deny, deploy, restrict, pay, or isolate.
-
 ```text
 A log records that an action happened.
 A Decision Receipt records why that action was allowed.
 ```
+
+## Validate your receipt in 30 seconds
+
+```bash
+git clone https://github.com/lumirosh/open-decision-receipt.git
+cd open-decision-receipt
+python -m pip install -e '.[dev]'
+
+# Check your own receipt against the schema
+dam-verify validate examples/loan-denial-receipt.yaml
+```
+
+That single command checks whether a receipt is well-formed and tells you its conformance level.
+
+Works with any YAML or JSON file that follows the [Decision Receipt schema](./decision-receipt.schema.yaml).
+
+## Conformance levels
+
+| Level | Name | What it proves | Validate it with |
+|---|---|---|---|
+| **L1** | Documented | Required fields present, schema-valid | `dam-verify validate <receipt>` |
+| **L2** | Bound | Check-time and use-time hashes recorded | L1 + `dam-verify chain` |
+| **L3** | Governed | Lifecycle-managed: seals on check/use match, reopens on drift | L2 + `dam-verify watch` |
+
+Most workflows should reach L2. Regulated, high-consequence decisions should target L3, where the receipt reopens automatically when its evidence or authority basis changes.
 
 ## The lifecycle
 
@@ -28,51 +49,24 @@ flowchart TB
     J -->|Basis changed| I
 ```
 
-The point is not to add another audit log. It is to preserve a decision's authority boundary across time.
-
-## What it answers
-
-| Question | Receipt evidence |
-|---|---|
-| Who requested the action and under what authority? | `request` |
-| What was checked before it ran? | `check` |
-| Who approved the exact scope? | `authority` |
-| What was allowed, denied, and actually executed? | `boundary`, `execution` |
-| Did the checked context still hold at execution? | check-time and execution-time hashes |
-| What happens when the basis changes later? | `watch()` reopens the receipt |
+The point is not another audit log. It is a decision's authority boundary preserved across time.
 
 ## See it work
 
+```bash
+# Full lifecycle: verify, approve, seal, replay, watch
+bash scripts/drift-reopen-demo.sh
+```
+
+This runs the same demo in 60 seconds: a certification-gated deployment is verified, approved, sealed, then reopened when the certificate is revoked.
+
+For a narrated walkthrough with real workflow scenarios:
+
 | Start here | What it demonstrates |
 |---|---|
-| [Quickstart](./docs/quickstart.md) | Verify, approve, seal, replay, and watch one high-risk action locally. |
-| [Loan denial](./docs/case-study-loan-denial.md) | Model recommendation, human review, manager authority, and bounded execution. |
-| [SOC containment](./docs/case-study-soc-containment.md) | A narrow policy-authorized isolation reopens when threat intelligence is retracted. |
-| [Architecture](./docs/architecture.md) | Roles, lifecycle, and the MCP verified-action boundary. |
-
-## Quickstart
-
-```bash
-git clone https://github.com/lumirosh/open-decision-receipt.git
-cd open-decision-receipt
-python -m pip install -e '.[dev]'
-python -m pytest -q
-
-rm -rf /tmp/odr-receipts
-dam-verify --receipts-dir /tmp/odr-receipts verify examples/verify-action-deploy.json
-# copy the decision_id from the output
-
-dam-verify --receipts-dir /tmp/odr-receipts approve <decision_id> --approver operator
-dam-verify --receipts-dir /tmp/odr-receipts seal <decision_id>
-dam-verify --receipts-dir /tmp/odr-receipts replay <decision_id>
-```
-
-Expected replay signal:
-
-```text
-check==use : True
-chain intact: True
-```
+| [Loan denial](./docs/case-study-loan-denial.md) | Model recommendation, human evidence review, manager authority, bounded execution. |
+| [SOC containment](./docs/case-study-soc-containment.md) | A narrow policy-authorized host isolation reopens when the threat intelligence is retracted. |
+| [Quickstart](./docs/quickstart.md) | Step-by-step: verify, approve, seal, replay, and watch one high-risk action locally. |
 
 ## Design position
 
@@ -104,6 +98,7 @@ Read the full [limitations](./docs/limitations.md).
 |---|---|
 | Understand states and lifecycle verbs | [Lifecycle](./docs/lifecycle.md) |
 | Map receipt fields to security and governance weaknesses | [Reference mappings](./docs/reference-mappings.md) |
+| Review conformance levels and conceptual lineage | [Reference mappings](./docs/reference-mappings.md) |
 | Understand the MCP integration boundary | [MCP verified-action bridge](./docs/mcp-verified-action-bridge.md) |
 | Review structured-query evidence direction | [Future directions](./docs/future-directions.md) |
 | Read the longer thesis behind the project | [Decision Receipt Manifesto](./DECISION-RECEIPT-MANIFESTO.md) |

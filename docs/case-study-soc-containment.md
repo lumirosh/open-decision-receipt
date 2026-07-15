@@ -1,5 +1,7 @@
 # Case Study: Policy-Authorized SOC Containment
 
+> At 02:14 a containment agent isolates a host under a pre-approved runbook. The next morning, the threat intelligence feed retracts the original indicator as a false positive. A SOC lead must determine whether the isolation is still justified without waiting for the original incident responders to come on shift.
+
 Illustrative only. This scenario demonstrates a narrow, reversible response that is pre-authorized by policy and remains replayable when its authorizing evidence later changes.
 
 Source objects:
