@@ -109,9 +109,9 @@ The two synthetic [Google ADK workflows](./integrations/google_adk/README.md) pa
 | If you are a... | Start here |
 |---|---|
 | Agent or platform engineer | [Quickstart](./docs/quickstart.md) and [Google ADK workflows](./integrations/google_adk/README.md) |
-| Security architect | [Reference mappings](./docs/reference-mappings.md) and [SOC containment](./docs/case-study-soc-containment.md) |
-| Governance or risk practitioner | [Loan denial](./docs/case-study-loan-denial.md), [legal precedent](./docs/case-study-ai-hallucinated-precedent.md), and [limitations](./docs/limitations.md) |
-| Standards or provenance researcher | [Architecture](./docs/architecture.md), [reference mappings](./docs/reference-mappings.md), and [future directions](./docs/future-directions.md) |
+| Security architect | [Security mappings](./docs/mappings/security.md) and [SOC containment](./docs/case-study-soc-containment.md) |
+| Governance or risk practitioner | [Governance mappings](./docs/mappings/governance.md), [loan denial](./docs/case-study-loan-denial.md), and [limitations](./docs/limitations.md) |
+| Standards or provenance researcher | [Provenance lineage](./docs/mappings/provenance.md), [architecture](./docs/architecture.md), and [future directions](./docs/future-directions.md) |
 | MCP implementer | [MCP verified-action bridge](./docs/mcp-verified-action-bridge.md) |
 
 ## Example patterns
@@ -135,7 +135,7 @@ Examples are included to demonstrate different authority and evidence failures, 
 | **L2: Bound** | Check-time and use-time context are recorded and linked |
 | **L3: Governed** | The receipt is lifecycle-managed, seals only on a valid basis, and reopens on drift |
 
-Most workflows should reach L2. High-consequence workflows should target L3. See the detailed [conformance and conceptual mappings](./docs/reference-mappings.md).
+Most workflows should reach L2. High-consequence workflows should target L3. See the detailed [conformance levels](./docs/mappings/conformance.md).
 
 ## Boundaries
 
@@ -160,10 +160,14 @@ A receipt can make a decision inspectable. It cannot make bad evidence true or r
 
 | Need | Document |
 |---|---|
+| Browse all documentation paths | [Documentation index](./docs/README.md) |
 | Install and run the lifecycle | [Quickstart](./docs/quickstart.md) |
 | Understand components and boundaries | [Architecture](./docs/architecture.md) |
 | Understand states and lifecycle verbs | [Lifecycle](./docs/lifecycle.md) |
-| Review security, governance, conformance, and provenance mappings | [Reference mappings](./docs/reference-mappings.md) |
+| Review security weakness classes | [Security mappings](./docs/mappings/security.md) |
+| Review governance framework questions | [Governance mappings](./docs/mappings/governance.md) |
+| Review conformance behavior | [Conformance levels](./docs/mappings/conformance.md) |
+| Review provenance and conceptual lineage | [Provenance lineage](./docs/mappings/provenance.md) |
 | Understand current limitations | [Limitations](./docs/limitations.md) |
 | Understand the MCP integration boundary | [MCP verified-action bridge](./docs/mcp-verified-action-bridge.md) |
 | Review proposed structured-query evidence | [Future directions](./docs/future-directions.md) |

@@ -80,7 +80,10 @@ model recommendation
 | See policy-authorized containment reopen on evidence drift | [`case-study-soc-containment.md`](./case-study-soc-containment.md) |
 | Understand object states and lifecycle verbs | [`lifecycle.md`](./lifecycle.md) |
 | Connect receipts to MCP tool-use boundaries | [`mcp-verified-action-bridge.md`](./mcp-verified-action-bridge.md) |
-| Review weakness classes and framework mappings | [`reference-mappings.md`](./reference-mappings.md) |
+| Review weakness classes | [`mappings/security.md`](./mappings/security.md) |
+| Review governance questions | [`mappings/governance.md`](./mappings/governance.md) |
+| Review conformance behavior | [`mappings/conformance.md`](./mappings/conformance.md) |
+| Review conceptual lineage | [`mappings/provenance.md`](./mappings/provenance.md) |
 | Run the reference CLI | [`quickstart.md`](./quickstart.md) |
 | Review structured-query evidence direction | [`future-directions.md`](./future-directions.md) |
 | Understand explicit non-claims | [`limitations.md`](./limitations.md) |
