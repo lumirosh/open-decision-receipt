@@ -1,6 +1,6 @@
 # Open Decision Receipt
 
-**Portable decision provenance for consequential AI-enabled actions.**
+**Human-in-the-loop is not evidence. A Decision Receipt is.**
 
 ```text
 A trace shows what ran.
@@ -11,6 +11,25 @@ Watch determines whether that basis still holds.
 AI systems increasingly recommend, route, approve, or initiate actions that affect money, access, customers, legal outcomes, and production systems. Execution logs can show that an action happened. They rarely preserve the complete authority boundary: what evidence was checked, who or what was allowed to decide, what scope was granted, what actually executed, and whether the basis changed later.
 
 Open Decision Receipt is a vendor-neutral schema and reference lifecycle for preserving that boundary.
+
+## Try it in 60 seconds
+
+```bash
+git clone https://github.com/lumirosh/open-decision-receipt.git
+cd open-decision-receipt
+python -m pip install -e '.[dev]'
+dam-verify validate examples/loan-denial-receipt.yaml
+```
+
+The validator checks YAML or JSON against the schema, names missing requirements, and reports conformance as L1 Documented, L2 Bound, or L3 Governed.
+
+To see a previously valid decision reopen when its evidence basis changes:
+
+```bash
+bash scripts/drift-reopen-demo.sh
+```
+
+The demo verifies, approves, seals, replays, and watches one certification-gated action. It then revokes the certificate and shows why the old approval no longer holds.
 
 ## The proof object
 
@@ -69,27 +88,7 @@ The lifecycle is fail-closed:
 
 Read the complete [lifecycle](./docs/lifecycle.md) and [limitations](./docs/limitations.md).
 
-## Run it
-
-### Validate a receipt
-
-```bash
-git clone https://github.com/lumirosh/open-decision-receipt.git
-cd open-decision-receipt
-python -m pip install -e '.[dev]'
-
-dam-verify validate examples/loan-denial-receipt.yaml
-```
-
-The validator checks YAML or JSON against the [Decision Receipt schema](./decision-receipt.schema.yaml) and reports its conformance level.
-
-### Watch a valid decision reopen
-
-```bash
-bash scripts/drift-reopen-demo.sh
-```
-
-The local demo verifies, approves, seals, replays, and watches a certification-gated deployment. It then revokes the certificate and shows the receipt reopening because its authority basis changed.
+## More ways to run it
 
 ### Run a human-gated application
 
