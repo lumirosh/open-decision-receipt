@@ -1,0 +1,21 @@
+workflow: cert_gated_deployment
+version: 3
+authority_rules:
+  - actors: [release_workflow, ops_agent]
+    risk_classes: [high]
+    allowed_actions: [deploy_certified_workflow]
+    denied_actions: [modify_certification, bypass_gate]
+    requires_human: true
+    basis: "runbook://cert-gated-deployment#v3"
+    required_evidence: [certification_status]
+  - actors: [monitoring_agent]
+    risk_classes: [low]
+    allowed_actions: [read_status]
+    denied_actions: [deploy_certified_workflow, modify_certification]
+    requires_human: false
+    basis: "runbook://cert-gated-deployment#v3"
+    required_evidence: [certification_status]
+evidence_sources:
+  certification_status:
+    version: 7
+    content: "Certification CERT-2214 VALID. Issued 2026-05-01, expires 2027-05-01. Scope: production deployment path A."

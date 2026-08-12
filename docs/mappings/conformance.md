@@ -6,7 +6,7 @@ A Decision Receipt can be validated at three additive levels. L2 includes L1. L3
 |---|---|---|---|
 | **L1** | Documented | Required fields are present and schema-valid | `dam-verify validate <receipt>` passes without schema errors |
 | **L2** | Bound | Check-time and use-time contexts are recorded and linked | L1 plus `dam-verify chain` reports an intact chain |
-| **L3** | Governed | Authority is resolved before execution, check and use are compared at seal, and watch can reopen the receipt when its evidence or authority basis changes | L2 plus a lifecycle-managed sealed receipt that reopens after a relevant basis change |
+| **L3** | Governed | Authority is resolved before execution, check and use are compared at seal, and post-seal watch can detect a relevant basis change | L2 plus an immutable sealed receipt, append-only `ReopenEvent`, and linked child lifecycle after a relevant basis change |
 
 The reference implementation can produce receipts at any level. Most workflows should reach L2. High-consequence workflows should target L3.
 

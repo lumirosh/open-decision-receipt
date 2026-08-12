@@ -54,7 +54,7 @@ sequenceDiagram
 | What was explicitly prohibited? | deletion, deprovisioning, and external notification are denied |
 | Did the action stay within a bounded scope? | `boundary.failure_mode: fail_closed` and recorded execution |
 | What evidence justified isolation? | threat intel, anomaly score, and asset criticality |
-| What happens when the evidence becomes false? | `watch()` reopens the sealed receipt after the evidence source changes |
+| What happens when the evidence becomes false? | `watch()` detects the change; the canonical lifecycle appends a `ReopenEvent` and starts a linked child lifecycle without mutating the sealed parent receipt |
 | Who owns the next review? | `accountability.review_required_by` and SOC escalation path |
 
 ## Why policy authorization is not a bypass

@@ -11,9 +11,10 @@ Core invariants:
   4. High-risk crosses the human gate unless a versioned authority bundle
      explicitly pre-authorizes a narrow action surface; policy exceptions stay
      bounded and are still replayable and watchable.
-  5. seal() refuses to seal when the check-time and execution-time context
-     hashes diverge: the receipt REOPENS instead. That is the TOCTOU catch.
-  6. watch() reopens sealed receipts whose evidence basis changed after seal.
+  5. seal() refuses to seal when check-time and execution-time context hashes
+     diverge and routes the attempt back to human review.
+  6. watch() preserves sealed receipts, appends a ReopenEvent, and starts a
+     linked child lifecycle when their evidence basis changes.
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ import yaml
 
 from .receipt import (
     Receipt, now_iso, sha256_of,
-    AUTHORIZED, DENIED, NEEDS_HUMAN_REVIEW, UNKNOWN, SEALED, REOPENED,
+    AUTHORIZED, DENIED, NEEDS_HUMAN_REVIEW, UNKNOWN, SEALED,
 )
 
 
@@ -108,6 +109,21 @@ class ReceiptStore:
 
     def all(self) -> list[Receipt]:
         return [Receipt(**json.loads(p.read_text())) for p in sorted(self.root.glob("*.json"))]
+
+    def save_event(self, event: dict) -> Path:
+        path = self.root / "events" / f"{event['event_id']}.json"
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(json.dumps(event, indent=2))
+        return path
+
+    def events_for(self, parent_receipt_id: str) -> list[dict]:
+        event_dir = self.root / "events"
+        if not event_dir.exists():
+            return []
+        return [
+            event for path in sorted(event_dir.glob("*.json"))
+            if (event := json.loads(path.read_text())).get("parent_receipt_id") == parent_receipt_id
+        ]
 
 
 # ---------------------------------------------------------------- core verbs
@@ -228,7 +244,7 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
     }
 
     if missing or ctx_now != r.check.get("context_hash_at_check"):
-        r.status = REOPENED
+        r.status = NEEDS_HUMAN_REVIEW
         r.flag("TOCTOU: context changed between check and use - sealing refused, re-verification required")
         return r
 
@@ -242,19 +258,49 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
 
 
 def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
-    """The OVER-TIME tense. Sealed proof becomes a question again when its
-    evidence basis drifts. Returns the receipts reopened in this pass."""
-    reopened = []
+    """Append a ReopenEvent and child lifecycle when a sealed basis drifts.
+
+    The sealed parent is never mutated. Repeated watches of the same changed
+    context are idempotent.
+    """
+    children = []
     for r in store.all():
         if r.status != SEALED:
             continue
         evidence_now, missing = bundles.evidence_for(r.workflow, r.check.get("evidence_refs", []))
-        if missing or context_hash(evidence_now) != r.check.get("context_hash_at_check"):
-            r.status = REOPENED
-            r.flag("basis drift detected by watcher - receipt reopened, authority requires re-verification")
-            store.save(r)
-            reopened.append(r)
-    return reopened
+        current_hash = context_hash(evidence_now)
+        if not missing and current_hash == r.check.get("context_hash_at_check"):
+            continue
+        if any(event.get("current_context_hash") == current_hash for event in store.events_for(r.decision_id)):
+            continue
+
+        event_id = f"RE-{uuid.uuid4().hex[:12]}"
+        child = Receipt(
+            decision_id=f"{r.decision_id}-child-{uuid.uuid4().hex[:6]}",
+            workflow=r.workflow,
+            decision_type=r.decision_type,
+            risk_class=r.risk_class,
+            status=NEEDS_HUMAN_REVIEW,
+            parent_receipt_id=r.decision_id,
+            reopen_event_id=event_id,
+            request=dict(r.request),
+        )
+        child.flag("basis drift detected by watcher - authority requires re-verification")
+        event = {
+            "event_id": event_id,
+            "event_type": "ReopenEvent",
+            "parent_receipt_id": r.decision_id,
+            "child_decision_id": child.decision_id,
+            "detected_at": now_iso(),
+            "reason": "basis drift detected by watcher",
+            "previous_context_hash": r.check.get("context_hash_at_check"),
+            "current_context_hash": current_hash,
+            "missing_evidence_refs": missing,
+        }
+        store.save_event(event)
+        store.save(child)
+        children.append(child)
+    return children
 
 
 def _match_rule(bundle: dict, req: dict) -> dict | None:

@@ -3,11 +3,13 @@
 Mirrors the public schema (lumirosh/open-decision-receipt) and adds the
 lifecycle status. A receipt is a state machine, not a document:
 
-    DRAFT -> AUTHORIZED -> SEALED -> REOPENED -> (re-verify)
-       |          |                    ^
-       |          +-- seal-time drift  |
+    DRAFT -> AUTHORIZED -> SEALED
+       |          |
+       |          +-- seal-time drift -> NEEDS_HUMAN_REVIEW
        +-- DENIED / ESCALATED / NEEDS_HUMAN_REVIEW
-                              watcher detects basis drift
+
+Post-seal drift appends a ReopenEvent and creates a linked child Receipt;
+the sealed parent remains unchanged.
 """
 from __future__ import annotations
 
@@ -36,7 +38,6 @@ ESCALATED = "escalated"
 NEEDS_HUMAN_REVIEW = "needs_human_review"
 UNKNOWN = "unknown"
 SEALED = "sealed"
-REOPENED = "reopened"
 REVOKED = "revoked"
 
 TERMINAL_NEGATIVE = {DENIED, ESCALATED, REVOKED}
@@ -49,6 +50,8 @@ class Receipt:
     decision_type: str
     risk_class: str
     status: str = DRAFT
+    parent_receipt_id: Optional[str] = None
+    reopen_event_id: Optional[str] = None
 
     request: dict = field(default_factory=dict)
     check: dict = field(default_factory=dict)

@@ -83,7 +83,7 @@ The lifecycle is fail-closed:
 
 - unknown authority or missing evidence does not become approval
 - changed context blocks sealing
-- later evidence or authority drift reopens a sealed receipt
+- later evidence or authority drift requires an append-only `ReopenEvent` and linked child lifecycle; the current reference implementation demonstrates detection but still needs this immutable-event alignment
 - promotion into reusable verified knowledge remains a separate human gate
 
 Read the complete [lifecycle](./docs/lifecycle.md) and [limitations](./docs/limitations.md).
@@ -121,7 +121,7 @@ Examples are included to demonstrate different authority and evidence failures, 
 |---|---|
 | [Loan denial](./docs/case-study-loan-denial.md) | Model recommendation, independent evidence review, human authority, bounded execution |
 | [Analyst-gated SOC containment](./integrations/google_adk/README.md#soc-analyst-gated-containment) | Urgent but reversible action held for human review |
-| [Policy-authorized SOC containment](./docs/case-study-soc-containment.md) | Narrow autonomy, accountable owner, watch and reopen on drift |
+| [Policy-authorized SOC containment](./docs/case-study-soc-containment.md) | Narrow autonomy, accountable owner, watch plus linked reopen event on drift |
 | [Claim payout](./examples/claim-payout-receipt.yaml) | Check-time and use-time context mismatch, related to CWE-367 |
 | [Hallucinated legal precedent](./docs/case-study-ai-hallucinated-precedent.md) | Unsupported evidence blocks authority |
 | [Certification-gated deployment](./docs/quickstart.md) | Previously valid authority becomes stale and requires re-verification |

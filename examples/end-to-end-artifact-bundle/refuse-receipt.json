@@ -1,0 +1,41 @@
+{
+  "accountability": {},
+  "authority": {},
+  "boundary": {
+    "allowed_actions": [
+      "deploy_certified_workflow"
+    ],
+    "denied_actions": [
+      "modify_certification",
+      "bypass_gate"
+    ],
+    "failure_mode": "fail_closed"
+  },
+  "check": {},
+  "decision_id": "DR-2026-08-12-70a8f4",
+  "decision_type": "bypass_gate",
+  "execution": {},
+  "findings": [
+    {
+      "at": "2026-08-12T10:02:00+00:00",
+      "finding": "action 'bypass_gate' outside allowed set ['deploy_certified_workflow']"
+    }
+  ],
+  "parent_receipt_id": null,
+  "receipt": {},
+  "recommendation": {},
+  "reopen_event_id": null,
+  "request": {
+    "params": {
+      "environment": "production",
+      "path": "A"
+    },
+    "requested_action": "bypass_gate",
+    "requested_at": "2026-08-12T10:02:00+00:00",
+    "requester": "release_workflow",
+    "requester_authority": "runbook://cert-gated-deployment#v3"
+  },
+  "risk_class": "high",
+  "status": "denied",
+  "workflow": "cert_gated_deployment"
+}

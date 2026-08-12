@@ -1,6 +1,6 @@
 #!/bin/bash
-# Drift-reopen demo: 60-second proof that a sealed Decision Receipt
-# reopens when its evidence basis changes.
+# Drift-reopen demo: 60-second proof that evidence-basis drift preserves the
+# sealed parent and creates an append-only ReopenEvent plus child lifecycle.
 #
 # Run from the repo root. Creates receipts in a temp directory.
 # Records the output for a screen-recording session.
@@ -45,7 +45,7 @@ evidence_sources:
 BUNDLE
 echo "Changed certification_status: version 8, content: REVOKED"
 
-say "06 — Watch: the sealed receipt reopens"
+say "06 — Watch: preserve sealed parent, append ReopenEvent, create child"
 cmd dam-verify --receipts-dir "$RECEIPTS" watch
 
 say "07 — Same actor, same action, same workflow. Valid yesterday, blocked today."

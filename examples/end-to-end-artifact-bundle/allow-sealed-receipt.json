@@ -1,0 +1,70 @@
+{
+  "accountability": {},
+  "authority": {
+    "approval_method": "explicit",
+    "approval_scope": "deploy_certified_workflow",
+    "approved_at": "2026-08-12T10:02:00+00:00",
+    "approver": "named-change-authority",
+    "authority_basis": "runbook://cert-gated-deployment#v3",
+    "separation_of_duties_ok": true
+  },
+  "boundary": {
+    "allowed_actions": [
+      "deploy_certified_workflow"
+    ],
+    "denied_actions": [
+      "modify_certification",
+      "bypass_gate"
+    ],
+    "failure_mode": "fail_closed"
+  },
+  "check": {
+    "checked_at": "2026-08-12T10:02:00+00:00",
+    "checked_by": "dam.verify_action",
+    "context_hash_at_check": "sha256:7a8ae1d15cd1db0e73515068a47905d2c9d2b20a8c052ffbc21c372e3902a888",
+    "evidence_refs": [
+      "certification_status"
+    ],
+    "evidence_seen": {
+      "certification_status": {
+        "content_hash": "sha256:7717ce92d339dd20726bfd1e0d6cce65784aee352c7beaed0f60e0da0e76749d",
+        "version": 7
+      }
+    }
+  },
+  "decision_id": "DR-2026-08-12-a53fa5",
+  "decision_type": "deploy_certified_workflow",
+  "execution": {
+    "context_hash_at_execution": "sha256:7a8ae1d15cd1db0e73515068a47905d2c9d2b20a8c052ffbc21c372e3902a888",
+    "executed_at": "2026-08-12T10:02:00+00:00",
+    "executed_by": "release_workflow",
+    "execution_result": "success"
+  },
+  "findings": [
+    {
+      "at": "2026-08-12T10:02:00+00:00",
+      "finding": "human approval required before authorization (by rule)"
+    }
+  ],
+  "parent_receipt_id": null,
+  "receipt": {
+    "integrity_hash": "sha256:966b23b0788ec57a834df1ac3788985eebd8122e81e8e9bd422dc2f8b9fcd2d9",
+    "replayable": true,
+    "sealed_at": "2026-08-12T10:02:00+00:00"
+  },
+  "recommendation": {},
+  "reopen_event_id": null,
+  "request": {
+    "params": {
+      "environment": "production",
+      "path": "A"
+    },
+    "requested_action": "deploy_certified_workflow",
+    "requested_at": "2026-08-12T10:02:00+00:00",
+    "requester": "release_workflow",
+    "requester_authority": "runbook://cert-gated-deployment#v3"
+  },
+  "risk_class": "high",
+  "status": "sealed",
+  "workflow": "cert_gated_deployment"
+}
