@@ -1,5 +1,7 @@
-# Open Decision Receipt - Minimum Schema v0.1
+# Open Decision Receipt - Human-readable Minimum Schema v0.2 RC1
 # License: Apache-2.0
+# Normative machine-readable contract: schemas/decision-receipt.schema.json
+# Lifecycle event contract: schemas/reopen-event.schema.json
 # Invariant: no consequential AI-enabled action without replayable proof of
 # evidence, authority, scope, execution, and accountability.
 
@@ -7,6 +9,9 @@ decision_id: DR-YYYY-MM-DD-NNN        # unique, immutable
 workflow: string                       # workflow identifier
 decision_type: string                  # e.g. approve_claim_payout, merge_pr, send_outreach
 risk_class: low | medium | high | critical
+status: draft | authorized | denied | escalated | needs_human_review | unknown | sealed | revoked
+parent_receipt_id: string | null
+reopen_event_id: string | null
 
 request:
   requester: person | role | system | agent
@@ -28,6 +33,8 @@ check:                                 # TIME OF CHECK
       source_snapshot_id: string | null
       result_artifact_ref: string | null
   context_hash_at_check: hash          # fingerprint of the checked state
+  authority_snapshot: object | null    # exact bounded rule state relied on
+  authority_hash_at_check: hash | null # commitment to that authority state
   assumptions: [strings]
   dissenting_signals: [strings]        # anything that argued against the action
 
@@ -45,6 +52,9 @@ authority:
   authority_basis: policy_or_role_reference
   approval_scope: string               # the exact bounded action approved
   separation_of_duties_ok: true | false
+  authorization_use: single_use
+  consumed_at: timestamp | null
+  consumed_by_execution_hash: hash | null
 
 execution:                             # TIME OF USE
   executed_by: workflow | agent | tool | human

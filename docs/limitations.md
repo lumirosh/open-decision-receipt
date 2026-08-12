@@ -26,7 +26,7 @@ Bad evidence with a good receipt is still bad evidence. The receipt makes that d
 
 ## Human approval is not automatically good approval
 
-The receipt proves scoped human authorship. It does not prove the human was competent, independent, unbiased, or free from pressure.
+The receipt records scoped approval and its asserted authority basis. The reference implementation does not prove cryptographic identity, organizational authority, competence, independence, freedom from pressure, or authorship.
 
 That is why the schema records dissenting signals, separation of duties, approval basis, and accountability.
 

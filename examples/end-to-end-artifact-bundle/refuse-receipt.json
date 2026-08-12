@@ -11,13 +11,36 @@
     ],
     "failure_mode": "fail_closed"
   },
-  "check": {},
-  "decision_id": "DR-2026-08-12-70a8f4",
+  "check": {
+    "authority_hash_at_check": "sha256:957a35010721b86f81630be10c7ded090724242d325604be753cc48779cdea66",
+    "authority_snapshot": {
+      "actors": [
+        "release_workflow",
+        "ops_agent"
+      ],
+      "allowed_actions": [
+        "deploy_certified_workflow"
+      ],
+      "basis": "runbook://cert-gated-deployment#v3",
+      "bundle_version": 3,
+      "denied_actions": [
+        "modify_certification",
+        "bypass_gate"
+      ],
+      "expires_at": null,
+      "requires_human": true,
+      "revoked": false,
+      "risk_classes": [
+        "high"
+      ]
+    }
+  },
+  "decision_id": "DR-2026-08-12-f10a35",
   "decision_type": "bypass_gate",
   "execution": {},
   "findings": [
     {
-      "at": "2026-08-12T10:02:00+00:00",
+      "at": "2026-08-12T11:49:11+00:00",
       "finding": "action 'bypass_gate' outside allowed set ['deploy_certified_workflow']"
     }
   ],
@@ -31,7 +54,7 @@
       "path": "A"
     },
     "requested_action": "bypass_gate",
-    "requested_at": "2026-08-12T10:02:00+00:00",
+    "requested_at": "2026-08-12T11:49:11+00:00",
     "requester": "release_workflow",
     "requester_authority": "runbook://cert-gated-deployment#v3"
   },

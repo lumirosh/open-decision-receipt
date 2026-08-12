@@ -131,7 +131,7 @@ def test_policy_authorized_containment_seals_then_creates_child_when_intel_is_re
     assert len(children) == 1
     assert children[0].parent_receipt_id == receipt.decision_id
     assert receipts.load(receipt.decision_id).status == SEALED
-    assert "basis drift" in receipts.events_for(receipt.decision_id)[0]["reason"]
+    assert "evidence drift" in receipts.events_for(receipt.decision_id)[0]["reason"]
 
 
 def test_cli_verify_action_lifecycle_uses_configurable_paths(tmp_path, bundle_store, monkeypatch, deploy_request, capsys):
