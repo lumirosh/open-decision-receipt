@@ -83,7 +83,8 @@ The lifecycle is fail-closed:
 
 - unknown authority or missing evidence does not become approval
 - changed context blocks sealing
-- later evidence or authority drift requires an append-only `ReopenEvent` and linked child lifecycle; the current reference implementation demonstrates detection but still needs this immutable-event alignment
+- later evidence or authority drift appends a `ReopenEvent` and starts a linked child lifecycle while preserving the sealed parent
+- successful consequence consumes the bounded single-use authorization; reuse requires a new lifecycle
 - promotion into reusable verified knowledge remains a separate human gate
 
 Read the complete [lifecycle](./docs/lifecycle.md) and [limitations](./docs/limitations.md).

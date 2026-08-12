@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -82,6 +83,30 @@ def context_hash(evidence: dict) -> str:
     return sha256_of(evidence)
 
 
+def authority_snapshot(bundle: dict | None, req: dict) -> dict | None:
+    """Return the exact rule state relied on for this bounded action."""
+    if bundle is None or (rule := _match_rule(bundle, req)) is None:
+        return None
+    return {
+        "bundle_version": bundle.get("version"),
+        "actors": rule.get("actors", []),
+        "risk_classes": rule.get("risk_classes", []),
+        "allowed_actions": rule.get("allowed_actions", []),
+        "denied_actions": rule.get("denied_actions", []),
+        "requires_human": rule.get("requires_human", True),
+        "basis": rule.get("basis"),
+        "expires_at": rule.get("expires_at"),
+        "revoked": rule.get("revoked", False),
+    }
+
+
+def authority_hash(bundle: dict | None, req: dict) -> str | None:
+    snapshot = authority_snapshot(bundle, req)
+    if snapshot is None or snapshot.get("revoked") or _expired(snapshot):
+        return None
+    return sha256_of(snapshot)
+
+
 # ---------------------------------------------------------------- receipt store
 
 class ReceiptStore:
@@ -98,6 +123,10 @@ class ReceiptStore:
 
     def save(self, r: Receipt) -> Path:
         path = self.root / f"{r.decision_id}.json"
+        if path.exists() and r.status == SEALED:
+            existing = Receipt(**json.loads(path.read_text()))
+            if existing.status == SEALED and existing.receipt.get("integrity_hash") != r.receipt.get("integrity_hash"):
+                raise ValueError(f"authorization '{r.decision_id}' already sealed")
         path.write_text(json.dumps(r.to_dict(), indent=2))
         if r.status == SEALED and r.receipt.get("integrity_hash") and not self.chain.has(r.decision_id):
             self.chain.append(r.decision_id, r.receipt["integrity_hash"])
@@ -158,8 +187,18 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         r.status = DENIED
         r.flag("no authority rule matches this actor/risk class - denied by default")
         return r
+    if rule.get("revoked", False):
+        r.status = DENIED
+        r.flag("authority rule revoked - denied")
+        return r
+    if _expired(rule):
+        r.status = DENIED
+        r.flag("authority rule expired - denied")
+        return r
 
     r.request["requester_authority"] = rule.get("basis", "unspecified")
+    r.check["authority_snapshot"] = authority_snapshot(bundle, req)
+    r.check["authority_hash_at_check"] = authority_hash(bundle, req)
     r.boundary = {
         "allowed_actions": rule.get("allowed_actions", []),
         "denied_actions": rule.get("denied_actions", []),
@@ -177,7 +216,7 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
     # 4. Evidence: attach and freeze check-time context.
     refs = req.get("context_refs", []) or rule.get("required_evidence", [])
     evidence, missing = bundles.evidence_for(req["workflow"], refs)
-    r.check = {
+    r.check |= {
         "checked_by": "dam.verify_action",
         "checked_at": now_iso(),
         "evidence_refs": refs,
@@ -205,6 +244,9 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         "authority_basis": rule.get("basis", "unspecified"),
         "approval_scope": req["action"],
         "separation_of_duties_ok": True,
+        "authorization_use": "single_use",
+        "consumed_at": None,
+        "consumed_by_execution_hash": None,
     }
     return r
 
@@ -222,6 +264,9 @@ def approve(r: Receipt, approver: str, scope: str | None = None) -> Receipt:
         "authority_basis": r.request.get("requester_authority", "unspecified"),
         "approval_scope": scope or r.request["requested_action"],
         "separation_of_duties_ok": approver != r.request["requester"],
+        "authorization_use": "single_use",
+        "consumed_at": None,
+        "consumed_by_execution_hash": None,
     }
     if not r.authority["separation_of_duties_ok"]:
         r.flag("SoD violation: approver is the requester")
@@ -232,11 +277,17 @@ def approve(r: Receipt, approver: str, scope: str | None = None) -> Receipt:
 def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
     """The AFTER tense - but only if the world held still.
     Hash divergence between check and execution = TOCTOU: refuse to seal."""
+    if r.authority.get("consumed_at"):
+        raise ValueError("cannot reuse consumed single-use authority")
     if r.status != AUTHORIZED:
         raise ValueError(f"cannot seal receipt in status '{r.status}'")
 
     evidence_now, missing = bundles.evidence_for(r.workflow, r.check.get("evidence_refs", []))
     ctx_now = context_hash(evidence_now)
+    authority_now = authority_hash(bundles.resolve(r.workflow), {
+        "actor": r.request.get("requester"),
+        "risk_class": r.risk_class,
+    })
 
     r.execution = dict(execution_record) | {
         "executed_at": now_iso(),
@@ -248,7 +299,14 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
         r.flag("TOCTOU: context changed between check and use - sealing refused, re-verification required")
         return r
 
+    if authority_now is None or authority_now != r.check.get("authority_hash_at_check"):
+        r.status = NEEDS_HUMAN_REVIEW
+        r.flag("authority changed between check and consequence - sealing refused, re-verification required")
+        return r
+
     r.status = SEALED
+    r.authority["consumed_at"] = now_iso()
+    r.authority["consumed_by_execution_hash"] = sha256_of(r.execution)
     r.receipt = {
         "replayable": True,
         "integrity_hash": r.seal_hash(),
@@ -269,9 +327,20 @@ def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
             continue
         evidence_now, missing = bundles.evidence_for(r.workflow, r.check.get("evidence_refs", []))
         current_hash = context_hash(evidence_now)
-        if not missing and current_hash == r.check.get("context_hash_at_check"):
+        authority_now = authority_hash(bundles.resolve(r.workflow), {
+            "actor": r.request.get("requester"),
+            "risk_class": r.risk_class,
+        })
+        evidence_drift = bool(missing) or current_hash != r.check.get("context_hash_at_check")
+        previous_authority_hash = r.check.get("authority_hash_at_check")
+        authority_drift = previous_authority_hash is not None and authority_now != previous_authority_hash
+        if not evidence_drift and not authority_drift:
             continue
-        if any(event.get("current_context_hash") == current_hash for event in store.events_for(r.decision_id)):
+        if any(
+            event.get("current_context_hash") == current_hash
+            and event.get("current_authority_hash") == authority_now
+            for event in store.events_for(r.decision_id)
+        ):
             continue
 
         event_id = f"RE-{uuid.uuid4().hex[:12]}"
@@ -285,17 +354,24 @@ def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
             reopen_event_id=event_id,
             request=dict(r.request),
         )
-        child.flag("basis drift detected by watcher - authority requires re-verification")
+        drift_types = [
+            kind for kind, changed in (("evidence", evidence_drift), ("authority", authority_drift)) if changed
+        ]
+        drift_label = "+".join(drift_types)
+        child.flag(f"{drift_label} drift detected by watcher - re-verification required")
         event = {
             "event_id": event_id,
             "event_type": "ReopenEvent",
             "parent_receipt_id": r.decision_id,
             "child_decision_id": child.decision_id,
             "detected_at": now_iso(),
-            "reason": "basis drift detected by watcher",
+            "reason": f"{drift_label} drift detected by watcher",
             "previous_context_hash": r.check.get("context_hash_at_check"),
             "current_context_hash": current_hash,
             "missing_evidence_refs": missing,
+            "previous_authority_hash": previous_authority_hash,
+            "current_authority_hash": authority_now,
+            "drift_types": drift_types,
         }
         store.save_event(event)
         store.save(child)
@@ -309,3 +385,10 @@ def _match_rule(bundle: dict, req: dict) -> dict | None:
            req.get("risk_class", "high") in rule.get("risk_classes", []):
             return rule
     return None
+
+
+def _expired(rule: dict) -> bool:
+    value = rule.get("expires_at")
+    if not value:
+        return False
+    return datetime.fromisoformat(value.replace("Z", "+00:00")) <= datetime.now(timezone.utc)

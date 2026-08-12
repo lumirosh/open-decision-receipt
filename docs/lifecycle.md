@@ -2,6 +2,8 @@
 
 The canonical ODR lifecycle connects institutional authority to verified execution. It separates preparation, the consequence boundary, result observation, reconciliation, and sealing so that authorization is not confused with execution or evidence.
 
+A bounded authorization is single-use in the reference lifecycle. Successful consequence records when and by which execution hash it was consumed; reuse requires a new receipt lifecycle. Sealing is a Consequence Commit, not permission to promote the result into reusable knowledge.
+
 ```mermaid
 stateDiagram-v2
     [*] --> Observed
@@ -86,7 +88,7 @@ Sealed parent receipt
 
 ## Current reference-implementation profile
 
-The Python reference implementation exposes a narrower runtime vocabulary: `draft`, `unknown`, `denied`, `needs_human_review`, `authorized`, `sealed`, and `revoked`. Those are implementation statuses, not a second canonical lifecycle.
+The Python reference implementation exposes a narrower runtime vocabulary: `draft`, `unknown`, `denied`, `escalated`, `needs_human_review`, `authorized`, `sealed`, and `revoked`. Those are implementation statuses, not a second canonical lifecycle.
 
 Post-seal drift preserves the sealed parent, appends a `ReopenEvent`, and creates a linked child receipt in `needs_human_review`. Seal-time check/use drift occurs before an immutable receipt exists and therefore returns the same attempt to `needs_human_review` rather than creating a post-seal reopen event.
 

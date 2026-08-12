@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-decision-receipt.org/schemas/reopen-event.schema.json",
+  "title": "Open Decision Receipt ReopenEvent v0.2 RC1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "parent_receipt_id", "child_decision_id", "detected_at", "reason", "previous_context_hash", "current_context_hash", "missing_evidence_refs", "previous_authority_hash", "current_authority_hash", "drift_types"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "event_type": {"const": "ReopenEvent"},
+    "parent_receipt_id": {"type": "string", "minLength": 1},
+    "child_decision_id": {"type": "string", "minLength": 1},
+    "detected_at": {"type": "string", "minLength": 1},
+    "reason": {"type": "string", "minLength": 1},
+    "previous_context_hash": {"type": ["string", "null"]},
+    "current_context_hash": {"type": ["string", "null"]},
+    "missing_evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "previous_authority_hash": {"type": ["string", "null"]},
+    "current_authority_hash": {"type": ["string", "null"]},
+    "drift_types": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["evidence", "authority"]}}
+  }
+}

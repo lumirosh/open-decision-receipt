@@ -92,7 +92,7 @@ present but accountable without authority
 
 Human presence is not the same as human authorship.
 
-A Decision Receipt proves whether the human had meaningful authority, evidence, and stop-power before the action became consequence.
+A Decision Receipt records the asserted authority basis, evidence, scope, and stop-path so an integrating system or auditor can verify whether meaningful authority existed before the action became consequence.
 
 ## What a Decision Receipt proves
 
@@ -115,6 +115,12 @@ This makes the receipt more than an audit log.
 A log is event memory.
 
 A receipt is authority memory.
+
+## Consequence Commit is not Knowledge Commit
+
+Sealing a receipt records that one bounded action reached consequence under the captured basis. It does not authorize that decision, rationale, or outcome to become reusable organizational knowledge.
+
+Promotion into verified memory is a separate human gate. Runtime success cannot silently become policy, precedent, doctrine, or future authority.
 
 ## Where Decision Receipts belong
 

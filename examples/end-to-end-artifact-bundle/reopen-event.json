@@ -1,11 +1,16 @@
 {
-  "child_decision_id": "DR-2026-08-12-a53fa5-child-2bfa3d",
+  "child_decision_id": "DR-2026-08-12-9195bd-child-f5926a",
+  "current_authority_hash": "sha256:957a35010721b86f81630be10c7ded090724242d325604be753cc48779cdea66",
   "current_context_hash": "sha256:4029af06f8d1aa74df048c731f8d98a50b6105a3119ef3e1100ce48c3c632b37",
-  "detected_at": "2026-08-12T10:02:00+00:00",
-  "event_id": "RE-847c365668de",
+  "detected_at": "2026-08-12T11:49:11+00:00",
+  "drift_types": [
+    "evidence"
+  ],
+  "event_id": "RE-27d06906170d",
   "event_type": "ReopenEvent",
   "missing_evidence_refs": [],
-  "parent_receipt_id": "DR-2026-08-12-a53fa5",
+  "parent_receipt_id": "DR-2026-08-12-9195bd",
+  "previous_authority_hash": "sha256:957a35010721b86f81630be10c7ded090724242d325604be753cc48779cdea66",
   "previous_context_hash": "sha256:7a8ae1d15cd1db0e73515068a47905d2c9d2b20a8c052ffbc21c372e3902a888",
-  "reason": "basis drift detected by watcher"
+  "reason": "evidence drift detected by watcher"
 }
