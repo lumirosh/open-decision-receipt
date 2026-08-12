@@ -31,7 +31,7 @@ This is deliberately different from the existing [policy-authorized SOC case](..
 
 ```text
 Analyst-gated example: recommendation → inline analyst approval → local mock action
-Policy-authorized example: narrow reversible action → post-action ownership → watch and reopen on drift
+Policy-authorized example: narrow reversible action → post-action ownership → watch → ReopenEvent and child lifecycle on drift
 ```
 
 ## Human response

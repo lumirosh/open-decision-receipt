@@ -100,7 +100,10 @@ dam-verify --receipts-dir /tmp/odr-receipts watch
 Expected:
 
 ```text
-reopened: 1
+reopen_events: 1
+parent=<sealed-parent-id> child=<revalidation-child-id>
 ```
 
-The receipt was valid yesterday. The basis changed today. The same action now needs re-verification.
+The sealed parent remains immutable. The basis changed today, so `watch` appends a
+reopen event and creates a linked child in `needs_human_review`. Re-run verification
+on that child before any new approval, action, or seal.

@@ -97,10 +97,13 @@ def main(argv=None):
         receipts.save(r)
         _print(r)
     elif args.cmd == "watch":
-        reopened = watch(receipts, bundles)
-        print(f"reopened: {len(reopened)}")
-        for r in reopened:
-            print(f"  {r.decision_id}  {r.findings[-1]['finding']}")
+        children = watch(receipts, bundles)
+        print(f"reopen_events: {len(children)}")
+        for child in children:
+            print(
+                f"  {child.reopen_event_id}  parent={child.parent_receipt_id}  "
+                f"child={child.decision_id}"
+            )
     elif args.cmd == "show":
         r = receipts.load(args.decision_id)
         print(json.dumps(r.to_dict(), indent=2))

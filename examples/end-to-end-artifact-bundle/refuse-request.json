@@ -1,0 +1,13 @@
+{
+  "action": "bypass_gate",
+  "actor": "release_workflow",
+  "context_refs": [
+    "certification_status"
+  ],
+  "params": {
+    "environment": "production",
+    "path": "A"
+  },
+  "risk_class": "high",
+  "workflow": "cert_gated_deployment"
+}

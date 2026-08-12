@@ -106,7 +106,7 @@ Runtime boundaries can enforce a verdict:
 ```text
 no valid receipt → no execution
 authorized receipt → action may proceed within scope
-reopened receipt → stop and re-verify
+ReopenEvent + child lifecycle → stop and re-verify without mutating the sealed parent
 ```
 
 The receipt is not a runtime engine. It is the authority object the runtime engine can consume.
@@ -122,7 +122,7 @@ A policy changes. A certification is revoked. A source document updates. A risk 
 A sealed receipt must be able to become a question again.
 
 ```text
-sealed → reopened
+sealed parent → ReopenEvent → child lifecycle
 ```
 
 That is why the lifecycle includes `watch`.

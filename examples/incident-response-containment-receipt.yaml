@@ -79,5 +79,6 @@ receipt:
   integrity_hash: "sha256:a02f..."
 
 # Later drift: the threat-intel provider retracts TI-88213 as a false positive.
-# The runnable test and SOC bundle demonstrate that watch() reopens the sealed
-# receipt when this evidence source changes.
+# The current runnable test demonstrates drift detection. The canonical
+# lifecycle requires an append-only ReopenEvent and linked child lifecycle;
+# the sealed parent receipt remains immutable.

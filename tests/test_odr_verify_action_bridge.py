@@ -1,7 +1,8 @@
 """Integration tests for DAM verify-action bridge.
 
 These tests lock the cert-drift demo contract: same action can seal while the
-authority basis is valid, then reopen/fail closed when that basis drifts.
+authority basis is valid, then create an append-only reopen event and linked
+child lifecycle when that basis drifts.
 """
 
 import copy
@@ -12,7 +13,7 @@ import pytest
 import yaml
 
 from dam_verify.engine import BundleStore, ReceiptStore, approve, seal, verify_action, watch
-from dam_verify.receipt import NEEDS_HUMAN_REVIEW, REOPENED, SEALED
+from dam_verify.receipt import NEEDS_HUMAN_REVIEW, SEALED
 
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "cert_gated_deployment.yaml"
@@ -53,7 +54,7 @@ def revoke_cert(bundle_store):
     path.write_text(yaml.safe_dump(data))
 
 
-def test_cert_drift_story_same_action_allowed_then_reopened(bundle_store, receipt_store, deploy_request):
+def test_cert_drift_preserves_sealed_parent_and_creates_linked_child(bundle_store, receipt_store, deploy_request):
     receipt = verify_action(deploy_request, bundle_store)
     assert receipt.status == NEEDS_HUMAN_REVIEW
 
@@ -65,9 +66,20 @@ def test_cert_drift_story_same_action_allowed_then_reopened(bundle_store, receip
 
     revoke_cert(bundle_store)
 
-    reopened = watch(receipt_store, bundle_store)
-    assert [r.decision_id for r in reopened] == [receipt.decision_id]
-    assert receipt_store.load(receipt.decision_id).status == REOPENED
+    children = watch(receipt_store, bundle_store)
+
+    assert len(children) == 1
+    child = children[0]
+    assert child.parent_receipt_id == receipt.decision_id
+    assert child.status == NEEDS_HUMAN_REVIEW
+    assert receipt_store.load(receipt.decision_id).to_dict() == receipt.to_dict()
+    events = receipt_store.events_for(receipt.decision_id)
+    assert len(events) == 1
+    assert events[0]["parent_receipt_id"] == receipt.decision_id
+    assert events[0]["child_decision_id"] == child.decision_id
+
+    assert watch(receipt_store, bundle_store) == []
+    assert len(receipt_store.events_for(receipt.decision_id)) == 1
 
 
 def test_seal_refuses_to_seal_if_basis_changes_between_check_and_use(bundle_store, deploy_request):
@@ -76,11 +88,11 @@ def test_seal_refuses_to_seal_if_basis_changes_between_check_and_use(bundle_stor
 
     receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundle_store)
 
-    assert receipt.status == REOPENED
+    assert receipt.status == NEEDS_HUMAN_REVIEW
     assert any("TOCTOU" in finding["finding"] for finding in receipt.findings)
 
 
-def test_policy_authorized_containment_seals_then_reopens_when_intel_is_retracted(tmp_path):
+def test_policy_authorized_containment_seals_then_creates_child_when_intel_is_retracted(tmp_path):
     fixture = Path(__file__).resolve().parent / "fixtures" / "soc_automated_containment.yaml"
     bundle_dir = tmp_path / "bundles"
     bundle_dir.mkdir()
@@ -115,11 +127,11 @@ def test_policy_authorized_containment_seals_then_reopens_when_intel_is_retracte
     bundle["evidence_sources"]["threat_intel_indicator"]["content"] = "TI-88213 RETRACTED: false positive signature collision."
     path.write_text(yaml.safe_dump(bundle))
 
-    reopened = watch(receipts, bundles)
-    assert [r.decision_id for r in reopened] == [receipt.decision_id]
-    reopened_receipt = receipts.load(receipt.decision_id)
-    assert reopened_receipt.status == REOPENED
-    assert any("basis drift" in finding["finding"] for finding in reopened_receipt.findings)
+    children = watch(receipts, bundles)
+    assert len(children) == 1
+    assert children[0].parent_receipt_id == receipt.decision_id
+    assert receipts.load(receipt.decision_id).status == SEALED
+    assert "basis drift" in receipts.events_for(receipt.decision_id)[0]["reason"]
 
 
 def test_cli_verify_action_lifecycle_uses_configurable_paths(tmp_path, bundle_store, monkeypatch, deploy_request, capsys):
@@ -156,3 +168,15 @@ def test_cli_verify_action_lifecycle_uses_configurable_paths(tmp_path, bundle_st
     assert rc == 0
     seal_out = json.loads(capsys.readouterr().out)
     assert seal_out["status"] == SEALED
+
+    revoke_cert(bundle_store)
+    rc = cli.main([
+        "--bundles-dir", str(bundle_store.root),
+        "--receipts-dir", str(receipts_dir),
+        "watch",
+    ])
+    assert rc == 0
+    watch_out = capsys.readouterr().out
+    assert "reopen_events: 1" in watch_out
+    assert f"parent={decision_id}" in watch_out
+    assert ReceiptStore(receipts_dir).load(decision_id).status == SEALED
