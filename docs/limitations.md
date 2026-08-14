@@ -18,6 +18,10 @@ Identity binding belongs in the integrating system.
 
 The reference resolver projects one exact path from a supplied authority bundle. It does not discover organizational authority, authenticate its source, replace IAM or policy enforcement, or make observed behavior authoritative. Integrating systems remain responsible for trusted bundle provenance and runtime enforcement.
 
+## A receipt does not verify execution stayed within scope
+
+The `Reconciled` state in the canonical lifecycle asks whether observed execution remained within authority and satisfied its obligations. The reference implementation does not answer that question. `approval_scope` and `actual_action` are nullable string fields. The reference runtime records them but does not semantically compare them, and it produces no `Reconciled` verdict. A receipt showing both fields is not evidence that they were checked against each other.
+
 ## The hash chain is not a signature scheme
 
 `dam_verify.chain` is tamper-evident, not tamper-proof. It can show that local receipt history was modified after the fact. It does not replace digital signatures, trusted timestamping, HSM-backed signing, or external notarization.
