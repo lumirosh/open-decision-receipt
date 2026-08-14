@@ -83,9 +83,28 @@ def context_hash(evidence: dict) -> str:
     return sha256_of(evidence)
 
 
+def _exact_rules(bundle: dict, req: dict) -> list[dict]:
+    return [
+        rule for rule in bundle.get("authority_rules", [])
+        if req["actor"] in rule.get("actors", [])
+        and req.get("risk_class", "high") in rule.get("risk_classes", [])
+        and req["action"] in rule.get("allowed_actions", [])
+        and req["action"] not in rule.get("denied_actions", [])
+        and not rule.get("revoked", False)
+        and not _expired(rule)
+    ]
+
+
 def authority_snapshot(bundle: dict | None, req: dict) -> dict | None:
     """Return the exact rule state relied on for this bounded action."""
-    if bundle is None or (rule := _match_rule(bundle, req)) is None:
+    if bundle is None:
+        return None
+    if req.get("action"):
+        rules = _exact_rules(bundle, req)
+        rule = rules[0] if len(rules) == 1 else None
+    else:
+        rule = _match_rule(bundle, req)
+    if rule is None:
         return None
     return {
         "bundle_version": bundle.get("version"),
@@ -105,6 +124,44 @@ def authority_hash(bundle: dict | None, req: dict) -> str | None:
     if snapshot is None or snapshot.get("revoked") or _expired(snapshot):
         return None
     return sha256_of(snapshot)
+
+
+def resolved_authority_path(bundle: dict | None, req: dict) -> dict | None:
+    """Resolve one deterministic authority path for the exact action."""
+    if bundle is None or bundle.get("version") is None:
+        return None
+    matches = _exact_rules(bundle, req)
+    if len(matches) != 1:
+        return None
+    rule = matches[0]
+    workflow = bundle.get("workflow", req["workflow"])
+    version = bundle.get("version")
+    basis = rule.get("basis", "unspecified")
+    evidence_refs = sorted(set(req.get("context_refs", [])) | set(rule.get("required_evidence", [])))
+    edges = [
+        {"subject": f"actor:{req['actor']}", "relationship": "may_execute", "object": f"action:{req['action']}"},
+        {"subject": f"action:{req['action']}", "relationship": "governed_by", "object": f"policy:{basis}"},
+        *(
+            {"subject": f"action:{req['action']}", "relationship": "requires", "object": f"evidence:{ref}"}
+            for ref in evidence_refs
+        ),
+    ]
+    path = {
+        "resolver_version": "1",
+        "bundle": workflow,
+        "bundle_version": version,
+        "actor": req["actor"],
+        "risk_class": req.get("risk_class", "high"),
+        "action": req["action"],
+        "requires_human": rule.get("requires_human", True),
+        "expires_at": rule.get("expires_at"),
+        "edges": sorted(edges, key=lambda edge: (edge["subject"], edge["relationship"], edge["object"])),
+        "dependency_ids": sorted([
+            f"authority-rule:{workflow}:{version}",
+            *(f"evidence:{ref}" for ref in evidence_refs),
+        ]),
+    }
+    return path | {"path_hash": sha256_of(path)}
 
 
 # ---------------------------------------------------------------- receipt store
@@ -180,9 +237,23 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         r.status = UNKNOWN
         r.flag(f"no authority bundle for workflow '{req['workflow']}' - fail closed")
         return r
+    if bundle.get("version") is None:
+        r.status = UNKNOWN
+        r.flag("authority bundle has no version - fail closed")
+        return r
 
     # 2. Find the rule governing this actor + risk class.
-    rule = _match_rule(bundle, req)
+    applicable_rules = [
+        rule for rule in bundle.get("authority_rules", [])
+        if req["actor"] in rule.get("actors", [])
+        and req.get("risk_class", "high") in rule.get("risk_classes", [])
+    ]
+    exact_rules = _exact_rules(bundle, req)
+    if len(exact_rules) > 1:
+        r.status = DENIED
+        r.flag("ambiguous authority: multiple rules permit this exact actor/risk/action - fail closed")
+        return r
+    rule = exact_rules[0] if exact_rules else (applicable_rules[0] if applicable_rules else None)
     if rule is None:
         r.status = DENIED
         r.flag("no authority rule matches this actor/risk class - denied by default")
@@ -214,7 +285,10 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         return r
 
     # 4. Evidence: attach and freeze check-time context.
-    refs = req.get("context_refs", []) or rule.get("required_evidence", [])
+    refs = sorted(set(req.get("context_refs", [])) | set(rule.get("required_evidence", [])))
+    path = resolved_authority_path(bundle, req | {"context_refs": refs})
+    if path:
+        r.authority["resolved_path"] = path
     evidence, missing = bundles.evidence_for(req["workflow"], refs)
     r.check |= {
         "checked_by": "dam.verify_action",
@@ -237,7 +311,7 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         return r
 
     r.status = AUTHORIZED
-    r.authority = {
+    r.authority |= {
         "approver": "policy",
         "approval_method": "policy",
         "approved_at": now_iso(),
@@ -257,7 +331,7 @@ def approve(r: Receipt, approver: str, scope: str | None = None) -> Receipt:
         raise ValueError(f"cannot approve receipt in status '{r.status}'")
     if r.check.get("missing"):
         raise ValueError(f"cannot approve with missing evidence: {r.check['missing']}")
-    r.authority = {
+    r.authority |= {
         "approver": approver,
         "approval_method": "explicit",
         "approved_at": now_iso(),
@@ -287,6 +361,14 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
     authority_now = authority_hash(bundles.resolve(r.workflow), {
         "actor": r.request.get("requester"),
         "risk_class": r.risk_class,
+        "action": r.request.get("requested_action"),
+    })
+    path_now = resolved_authority_path(bundles.resolve(r.workflow), {
+        "workflow": r.workflow,
+        "actor": r.request.get("requester"),
+        "risk_class": r.risk_class,
+        "action": r.request.get("requested_action"),
+        "context_refs": r.check.get("evidence_refs", []),
     })
 
     r.execution = dict(execution_record) | {
@@ -302,6 +384,12 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
     if authority_now is None or authority_now != r.check.get("authority_hash_at_check"):
         r.status = NEEDS_HUMAN_REVIEW
         r.flag("authority changed between check and consequence - sealing refused, re-verification required")
+        return r
+
+    previous_path = r.authority.get("resolved_path")
+    if previous_path and (path_now is None or path_now.get("path_hash") != previous_path.get("path_hash")):
+        r.status = NEEDS_HUMAN_REVIEW
+        r.flag("authority path changed between check and consequence - sealing refused, re-verification required")
         return r
 
     r.status = SEALED
@@ -330,15 +418,40 @@ def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
         authority_now = authority_hash(bundles.resolve(r.workflow), {
             "actor": r.request.get("requester"),
             "risk_class": r.risk_class,
+            "action": r.request.get("requested_action"),
         })
+        previous_path = r.authority.get("resolved_path")
+        # Legacy receipts have no path to replay; their authority hash remains authoritative.
+        path_now = resolved_authority_path(bundles.resolve(r.workflow), {
+            "workflow": r.workflow,
+            "actor": r.request.get("requester"),
+            "risk_class": r.risk_class,
+            "action": r.request.get("requested_action"),
+            "context_refs": r.check.get("evidence_refs", []),
+        }) if previous_path else None
         evidence_drift = bool(missing) or current_hash != r.check.get("context_hash_at_check")
         previous_authority_hash = r.check.get("authority_hash_at_check")
         authority_drift = previous_authority_hash is not None and authority_now != previous_authority_hash
-        if not evidence_drift and not authority_drift:
+        previous_path_hash = previous_path.get("path_hash") if previous_path else None
+        current_path_hash = path_now.get("path_hash") if path_now else None
+        authority_path_drift = previous_path is not None and current_path_hash != previous_path_hash
+        previous_dependencies = {
+            dependency for dependency in (previous_path or {}).get("dependency_ids", [])
+            if dependency.startswith("authority-rule:")
+        }
+        current_dependencies = {
+            dependency for dependency in (path_now or {}).get("dependency_ids", [])
+            if dependency.startswith("authority-rule:")
+        }
+        changed_dependencies = previous_dependencies ^ current_dependencies
+        if authority_path_drift and not changed_dependencies:
+            changed_dependencies = previous_dependencies & current_dependencies
+        if not evidence_drift and not authority_drift and not authority_path_drift:
             continue
         if any(
             event.get("current_context_hash") == current_hash
             and event.get("current_authority_hash") == authority_now
+            and event.get("current_authority_path_hash") == current_path_hash
             for event in store.events_for(r.decision_id)
         ):
             continue
@@ -355,7 +468,11 @@ def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
             request=dict(r.request),
         )
         drift_types = [
-            kind for kind, changed in (("evidence", evidence_drift), ("authority", authority_drift)) if changed
+            kind for kind, changed in (
+                ("evidence", evidence_drift),
+                ("authority", authority_drift),
+                ("authority_path", authority_path_drift),
+            ) if changed
         ]
         drift_label = "+".join(drift_types)
         child.flag(f"{drift_label} drift detected by watcher - re-verification required")
@@ -371,6 +488,9 @@ def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
             "missing_evidence_refs": missing,
             "previous_authority_hash": previous_authority_hash,
             "current_authority_hash": authority_now,
+            "previous_authority_path_hash": previous_path_hash,
+            "current_authority_path_hash": current_path_hash,
+            "changed_dependencies": sorted(changed_dependencies) if authority_path_drift else [],
             "drift_types": drift_types,
         }
         store.save_event(event)
@@ -380,6 +500,7 @@ def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
 
 
 def _match_rule(bundle: dict, req: dict) -> dict | None:
+    """Legacy action-less snapshot lookup; exact action paths use _exact_rules."""
     for rule in bundle.get("authority_rules", []):
         if req["actor"] in rule.get("actors", []) and \
            req.get("risk_class", "high") in rule.get("risk_classes", []):

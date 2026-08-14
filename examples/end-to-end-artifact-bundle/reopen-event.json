@@ -1,16 +1,19 @@
 {
-  "child_decision_id": "DR-2026-08-12-9195bd-child-f5926a",
+  "changed_dependencies": [],
+  "child_decision_id": "DR-2026-08-14-8085cd-child-f26324",
   "current_authority_hash": "sha256:957a35010721b86f81630be10c7ded090724242d325604be753cc48779cdea66",
+  "current_authority_path_hash": "sha256:c34f8c7910be21b896fa1efd2fc8d39bacc610425c119f18a5908109bd8cb770",
   "current_context_hash": "sha256:4029af06f8d1aa74df048c731f8d98a50b6105a3119ef3e1100ce48c3c632b37",
-  "detected_at": "2026-08-12T11:49:11+00:00",
+  "detected_at": "2026-08-14T13:34:55+00:00",
   "drift_types": [
     "evidence"
   ],
-  "event_id": "RE-27d06906170d",
+  "event_id": "RE-5bb9fdabea5d",
   "event_type": "ReopenEvent",
   "missing_evidence_refs": [],
-  "parent_receipt_id": "DR-2026-08-12-9195bd",
+  "parent_receipt_id": "DR-2026-08-14-8085cd",
   "previous_authority_hash": "sha256:957a35010721b86f81630be10c7ded090724242d325604be753cc48779cdea66",
+  "previous_authority_path_hash": "sha256:c34f8c7910be21b896fa1efd2fc8d39bacc610425c119f18a5908109bd8cb770",
   "previous_context_hash": "sha256:7a8ae1d15cd1db0e73515068a47905d2c9d2b20a8c052ffbc21c372e3902a888",
   "reason": "evidence drift detected by watcher"
 }
