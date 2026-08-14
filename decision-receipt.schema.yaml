@@ -55,6 +55,18 @@ authority:
   authorization_use: single_use
   consumed_at: timestamp | null
   consumed_by_execution_hash: hash | null
+  resolved_path:                       # deterministic authority path used for this action
+    resolver_version: "1"
+    bundle: string
+    bundle_version: integer | string
+    actor: string
+    risk_class: low | medium | high | critical
+    action: string
+    requires_human: true | false
+    expires_at: timestamp | null
+    edges: [{subject, relationship, object}]
+    dependency_ids: [strings]
+    path_hash: sha256:hex
 
 execution:                             # TIME OF USE
   executed_by: workflow | agent | tool | human

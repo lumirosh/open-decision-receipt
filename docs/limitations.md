@@ -14,6 +14,10 @@ The reference implementation treats actors as strings. It does not prove that `r
 
 Identity binding belongs in the integrating system.
 
+## A resolved path is not an authority service
+
+The reference resolver projects one exact path from a supplied authority bundle. It does not discover organizational authority, authenticate its source, replace IAM or policy enforcement, or make observed behavior authoritative. Integrating systems remain responsible for trusted bundle provenance and runtime enforcement.
+
 ## The hash chain is not a signature scheme
 
 `dam_verify.chain` is tamper-evident, not tamper-proof. It can show that local receipt history was modified after the fact. It does not replace digital signatures, trusted timestamping, HSM-backed signing, or external notarization.

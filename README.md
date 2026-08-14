@@ -51,6 +51,9 @@ authority:
   approver: lending_manager_m.ortiz
   authority_basis: lending_authority_matrix_v4#L2
   approval_scope: "deny loan application LN-88213"
+  resolved_path:
+    path_hash: "sha256:91fe..."
+    dependency_ids: ["authority-rule:loan_underwriting_ai:4", "evidence:lending_policy_v4_section_7.2"]
 
 execution:
   actual_action: "denial notice issued with reason code 7.2-DTI"

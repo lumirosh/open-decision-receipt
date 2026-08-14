@@ -33,13 +33,19 @@ flowchart TB
 
 The receipt preserves separation of duties when recommendation, review, approval, and execution are distinct roles.
 
+## Resolved authority path
+
+Authority is recorded as the one deterministic relationship path that permitted the exact actor, risk class, and action. The path carries typed edges, stable dependency identifiers, and a canonical hash. It is evidence for replay and drift detection, not a graph database or a new authorization service.
+
+If no exact path exists, or multiple rules equally authorize the same action, the reference resolver fails closed. Existing receipts without `resolved_path` keep the v0.2 authority-hash behavior and are not rewritten.
+
 ## Lifecycle and boundary
 
 ```text
 Before action:  verify evidence, policy, requester authority, and scope.
 During action:  enforce the approved boundary in the workflow or runtime layer.
 After action:   seal when check-time and execution-time context match.
-Over time:      watch for evidence or authority drift and reopen when needed.
+Over time:      watch for evidence, authority, or resolved-path drift and reopen when needed.
 Later:          replay the receipt to reconstruct why the action was allowed.
 ```
 

@@ -90,7 +90,7 @@ Sealed parent receipt
 
 The Python reference implementation exposes a narrower runtime vocabulary: `draft`, `unknown`, `denied`, `escalated`, `needs_human_review`, `authorized`, `sealed`, and `revoked`. Those are implementation statuses, not a second canonical lifecycle.
 
-Post-seal drift preserves the sealed parent, appends a `ReopenEvent`, and creates a linked child receipt in `needs_human_review`. Seal-time check/use drift occurs before an immutable receipt exists and therefore returns the same attempt to `needs_human_review` rather than creating a post-seal reopen event.
+Post-seal drift preserves the sealed parent, appends a `ReopenEvent`, and creates a linked child receipt in `needs_human_review`. For receipts carrying a resolved authority path, Watch also recomputes its canonical path hash and records affected authority dependencies. Legacy receipts without that field retain the authority-hash behavior. Seal-time check/use drift occurs before an immutable receipt exists and therefore returns the same attempt to `needs_human_review` rather than creating a post-seal reopen event.
 
 ## Demo spine
 

@@ -17,6 +17,9 @@
     "missing_evidence_refs": {"type": "array", "items": {"type": "string"}},
     "previous_authority_hash": {"type": ["string", "null"]},
     "current_authority_hash": {"type": ["string", "null"]},
-    "drift_types": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["evidence", "authority"]}}
+    "previous_authority_path_hash": {"type": ["string", "null"], "description": "Optional for backward compatibility with pre-authority-path events."},
+    "current_authority_path_hash": {"type": ["string", "null"], "description": "Optional for backward compatibility with pre-authority-path events."},
+    "changed_dependencies": {"type": "array", "uniqueItems": true, "description": "Authority-rule dependency IDs added, removed, or affected by a stable-ID content change; optional on legacy events.", "items": {"type": "string", "minLength": 1}},
+    "drift_types": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["evidence", "authority", "authority_path"]}}
   }
 }

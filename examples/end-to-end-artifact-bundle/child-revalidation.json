@@ -3,26 +3,26 @@
   "authority": {},
   "boundary": {},
   "check": {},
-  "decision_id": "DR-2026-08-12-9195bd-child-f5926a",
+  "decision_id": "DR-2026-08-14-8085cd-child-f26324",
   "decision_type": "deploy_certified_workflow",
   "execution": {},
   "findings": [
     {
-      "at": "2026-08-12T11:49:11+00:00",
+      "at": "2026-08-14T13:34:55+00:00",
       "finding": "evidence drift detected by watcher - re-verification required"
     }
   ],
-  "parent_receipt_id": "DR-2026-08-12-9195bd",
+  "parent_receipt_id": "DR-2026-08-14-8085cd",
   "receipt": {},
   "recommendation": {},
-  "reopen_event_id": "RE-27d06906170d",
+  "reopen_event_id": "RE-5bb9fdabea5d",
   "request": {
     "params": {
       "environment": "production",
       "path": "A"
     },
     "requested_action": "deploy_certified_workflow",
-    "requested_at": "2026-08-12T11:49:11+00:00",
+    "requested_at": "2026-08-14T13:34:55+00:00",
     "requester": "release_workflow",
     "requester_authority": "runbook://cert-gated-deployment#v3"
   },

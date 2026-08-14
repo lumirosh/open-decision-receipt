@@ -3,12 +3,44 @@
   "authority": {
     "approval_method": "explicit",
     "approval_scope": "deploy_certified_workflow",
-    "approved_at": "2026-08-12T11:49:11+00:00",
+    "approved_at": "2026-08-14T13:34:55+00:00",
     "approver": "named-change-authority",
     "authority_basis": "runbook://cert-gated-deployment#v3",
     "authorization_use": "single_use",
-    "consumed_at": "2026-08-12T11:49:11+00:00",
-    "consumed_by_execution_hash": "sha256:c23826565b1cc9def5f88c1a7cc6854e4fb7a94f32af70e00f66db90fad10b89",
+    "consumed_at": "2026-08-14T13:34:55+00:00",
+    "consumed_by_execution_hash": "sha256:bcba563f68ef1588971fd7244f84abdac5ea3cf1f0d9b6faa7e40158bd2b404e",
+    "resolved_path": {
+      "action": "deploy_certified_workflow",
+      "actor": "release_workflow",
+      "bundle": "cert_gated_deployment",
+      "bundle_version": 3,
+      "dependency_ids": [
+        "authority-rule:cert_gated_deployment:3",
+        "evidence:certification_status"
+      ],
+      "edges": [
+        {
+          "object": "policy:runbook://cert-gated-deployment#v3",
+          "relationship": "governed_by",
+          "subject": "action:deploy_certified_workflow"
+        },
+        {
+          "object": "evidence:certification_status",
+          "relationship": "requires",
+          "subject": "action:deploy_certified_workflow"
+        },
+        {
+          "object": "action:deploy_certified_workflow",
+          "relationship": "may_execute",
+          "subject": "actor:release_workflow"
+        }
+      ],
+      "expires_at": null,
+      "path_hash": "sha256:c34f8c7910be21b896fa1efd2fc8d39bacc610425c119f18a5908109bd8cb770",
+      "requires_human": true,
+      "resolver_version": "1",
+      "risk_class": "high"
+    },
     "separation_of_duties_ok": true
   },
   "boundary": {
@@ -44,7 +76,7 @@
         "high"
       ]
     },
-    "checked_at": "2026-08-12T11:49:11+00:00",
+    "checked_at": "2026-08-14T13:34:55+00:00",
     "checked_by": "dam.verify_action",
     "context_hash_at_check": "sha256:7a8ae1d15cd1db0e73515068a47905d2c9d2b20a8c052ffbc21c372e3902a888",
     "evidence_refs": [
@@ -57,25 +89,25 @@
       }
     }
   },
-  "decision_id": "DR-2026-08-12-9195bd",
+  "decision_id": "DR-2026-08-14-8085cd",
   "decision_type": "deploy_certified_workflow",
   "execution": {
     "context_hash_at_execution": "sha256:7a8ae1d15cd1db0e73515068a47905d2c9d2b20a8c052ffbc21c372e3902a888",
-    "executed_at": "2026-08-12T11:49:11+00:00",
+    "executed_at": "2026-08-14T13:34:55+00:00",
     "executed_by": "release_workflow",
     "execution_result": "success"
   },
   "findings": [
     {
-      "at": "2026-08-12T11:49:11+00:00",
+      "at": "2026-08-14T13:34:55+00:00",
       "finding": "human approval required before authorization (by rule)"
     }
   ],
   "parent_receipt_id": null,
   "receipt": {
-    "integrity_hash": "sha256:a71b6c29a477cb64781dc2c9a5138cbb0d883bcc35d0d7b7514012edcb60b21d",
+    "integrity_hash": "sha256:45fdab6765f64dce38151f0923fe56a1173e1238ebdb88ec8303745b5ea76628",
     "replayable": true,
-    "sealed_at": "2026-08-12T11:49:11+00:00"
+    "sealed_at": "2026-08-14T13:34:55+00:00"
   },
   "recommendation": {},
   "reopen_event_id": null,
@@ -85,7 +117,7 @@
       "path": "A"
     },
     "requested_action": "deploy_certified_workflow",
-    "requested_at": "2026-08-12T11:49:11+00:00",
+    "requested_at": "2026-08-14T13:34:55+00:00",
     "requester": "release_workflow",
     "requester_authority": "runbook://cert-gated-deployment#v3"
   },

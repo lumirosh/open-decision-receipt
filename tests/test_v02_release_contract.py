@@ -37,7 +37,7 @@ def sealed(bundles):
     return seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundles)
 
 
-def test_authority_only_drift_reopens_sealed_parent(stores):
+def test_authority_and_path_drift_reopen_sealed_parent(stores):
     bundles, receipts, bundle_path = stores
     parent = sealed(bundles)
     receipts.save(parent)
@@ -53,7 +53,7 @@ def test_authority_only_drift_reopens_sealed_parent(stores):
     assert receipts.load(parent.decision_id).to_dict() == before
     assert children[0].status == NEEDS_HUMAN_REVIEW
     event = receipts.events_for(parent.decision_id)[0]
-    assert event["drift_types"] == ["authority"]
+    assert event["drift_types"] == ["authority", "authority_path"]
     assert event["previous_authority_hash"] != event["current_authority_hash"]
 
 
@@ -124,6 +124,126 @@ def test_legacy_sealed_receipt_without_authority_hash_is_not_spuriously_reopened
     parent = sealed(bundles)
     parent.check.pop("authority_hash_at_check")
     parent.check.pop("authority_snapshot")
+    parent.authority.pop("resolved_path", None)
     receipts.save(parent)
 
     assert watch(receipts, bundles) == []
+
+
+def test_resolved_authority_path_is_deterministic_across_list_order(stores):
+    bundles, _, bundle_path = stores
+    first = verify_action(request(), bundles).authority["resolved_path"]
+
+    bundle = yaml.safe_load(bundle_path.read_text())
+    rule = bundle["authority_rules"][0]
+    rule["actors"].reverse()
+    rule["denied_actions"].reverse()
+    bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
+
+    second = verify_action(request(), bundles).authority["resolved_path"]
+
+    assert first == second
+    assert first["path_hash"].startswith("sha256:")
+    assert first["dependency_ids"] == sorted(first["dependency_ids"])
+
+
+def test_authority_path_only_drift_reopens_without_mutating_parent(stores):
+    bundles, receipts, bundle_path = stores
+    parent = sealed(bundles)
+    receipts.save(parent)
+    before = deepcopy(parent.to_dict())
+
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle["authority_rules"][0]["required_evidence"].append("deployment_window")
+    bundle["evidence_sources"]["deployment_window"] = {"version": 1, "content": "OPEN"}
+    bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
+
+    children = watch(receipts, bundles)
+
+    assert len(children) == 1
+    assert receipts.load(parent.decision_id).to_dict() == before
+    event = receipts.events_for(parent.decision_id)[0]
+    assert event["drift_types"] == ["authority_path"]
+    assert event["previous_authority_path_hash"] != event["current_authority_path_hash"]
+    assert "authority-rule:cert_gated_deployment:3" in event["changed_dependencies"]
+
+
+def test_ambiguous_exact_authority_rules_fail_closed(stores):
+    bundles, _, bundle_path = stores
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle["authority_rules"].insert(1, deepcopy(bundle["authority_rules"][0]))
+    bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
+
+    receipt = verify_action(request(), bundles)
+
+    assert receipt.status == "denied"
+    assert any("ambiguous" in item["finding"] for item in receipt.findings)
+
+
+def test_caller_context_cannot_replace_policy_required_evidence(stores):
+    bundles, _, _ = stores
+    req = request()
+    req["context_refs"] = ["caller_supplied_extra"]
+
+    receipt = verify_action(req, bundles)
+
+    assert receipt.status == NEEDS_HUMAN_REVIEW
+    assert receipt.check["evidence_refs"] == ["caller_supplied_extra", "certification_status"]
+    assert receipt.check["missing"] == ["caller_supplied_extra"]
+    assert "evidence:certification_status" in receipt.authority["resolved_path"]["dependency_ids"]
+
+
+def test_authority_path_change_before_consequence_refuses_seal(stores):
+    bundles, _, bundle_path = stores
+    receipt = approve(verify_action(request(), bundles), approver="operator")
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle["authority_rules"][0]["required_evidence"].append("deployment_window")
+    bundle["evidence_sources"]["deployment_window"] = {"version": 1, "content": "OPEN"}
+    bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
+
+    result = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundles)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert any("authority path changed" in item["finding"] for item in result.findings)
+
+
+def test_missing_bundle_version_fails_closed_before_path_resolution(stores):
+    bundles, _, bundle_path = stores
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle.pop("version")
+    bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
+
+    receipt = verify_action(request(), bundles)
+
+    assert receipt.status == "unknown"
+    assert "resolved_path" not in receipt.authority
+    assert any("version" in item["finding"] for item in receipt.findings)
+
+
+def test_revoked_rule_never_claims_requester_authority(stores):
+    bundles, _, bundle_path = stores
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle["authority_rules"][0]["revoked"] = True
+    bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
+
+    receipt = verify_action(request(), bundles)
+
+    assert receipt.status == "denied"
+    assert receipt.request["requester_authority"] == "unresolved"
+
+
+def test_changed_dependencies_include_previous_and_current_rule_ids(stores):
+    bundles, receipts, bundle_path = stores
+    parent = sealed(bundles)
+    receipts.save(parent)
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle["version"] = 4
+    bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
+
+    watch(receipts, bundles)
+
+    event = receipts.events_for(parent.decision_id)[0]
+    assert event["changed_dependencies"] == [
+        "authority-rule:cert_gated_deployment:3",
+        "authority-rule:cert_gated_deployment:4",
+    ]
