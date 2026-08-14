@@ -24,9 +24,18 @@ Open Decision Receipt has one core object and several ways to inspect it. Choose
 - [SOC containment](./case-study-soc-containment.md): narrow autonomy, accountable ownership, and reopening on drift
 - [Hallucinated legal precedent](./case-study-ai-hallucinated-precedent.md): unsupported evidence blocks authority
 
+## Runnable release artifact
+
+- [RC2 end-to-end artifact bundle](../examples/end-to-end-artifact-bundle/README.md)
+
 ## Research direction
 
+- [Signal map](../SIGNAL-MAP.md)
 - [Structured-query evidence and future directions](./future-directions.md)
 - [Decision Receipt Manifesto](../DECISION-RECEIPT-MANIFESTO.md)
+
+## Reference index
+
+- [Security, governance, conformance, and provenance mappings](./reference-mappings.md)
 
 The implemented contract lives in the schema, validator, lifecycle code, and tests. Research documents describe proposed directions and are not conformance requirements.

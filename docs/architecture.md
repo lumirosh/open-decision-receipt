@@ -2,6 +2,14 @@
 
 A Decision Receipt is the portable authority and evidence object around a consequential AI-enabled action. It does not replace a runtime control. It makes the basis for an allow, block, or escalation inspectable and replayable.
 
+## What a receipt adds over a log
+
+A log records that something happened.
+
+A Decision Receipt binds the recorded action to its asserted evidence, authority, approved scope, execution, and accountability. `watch` then checks whether the referenced evidence and authority basis still match the current source bundle.
+
+A receipt does not establish that the underlying evidence was true, that the authority source was legitimate, or that the approval was wise. See [`limitations.md`](./limitations.md).
+
 ## 30-second flow
 
 ```mermaid

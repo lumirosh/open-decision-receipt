@@ -28,7 +28,7 @@ A shipping receipt proves custody changed.
 
 An access log proves entry occurred.
 
-A Decision Receipt proves authority moved into action.
+A Decision Receipt preserves the asserted authority basis that moved into action.
 
 It records the chain between:
 
@@ -231,7 +231,7 @@ AI is making consequence move faster.
 
 Receipts exist when memory is not enough.
 
-Decision Receipts are how organizations prove that AI-assisted actions were authorized, evidenced, bounded, executed as approved, and reopened when their basis changed.
+Decision Receipts make it possible to reconstruct whether AI-assisted actions were evidenced, bounded, executed under an asserted authority basis, and reopened when that basis changed.
 
 ## Short version
 

@@ -21,7 +21,7 @@ python -m pip install -e '.[dev]'
 dam-verify validate examples/loan-denial-receipt.yaml
 ```
 
-The validator checks YAML or JSON against the schema, names missing requirements, and reports conformance as L1 Documented, L2 Bound, or L3 Governed.
+The validator checks YAML or JSON against the schema, names missing requirements, and reports conformance as L1 Documented or L2 Bound. L3 Governed is demonstrated by lifecycle behavior, not by a single `validate` call.
 
 To see a previously valid decision reopen when its evidence basis changes:
 
@@ -31,7 +31,9 @@ bash scripts/drift-reopen-demo.sh
 
 The demo verifies, approves, seals, replays, and watches one certification-gated action. It then revokes the certificate and shows why the old approval no longer holds.
 
-## The proof object
+## Selected fields from the proof object
+
+This excerpt highlights the decision boundary; it is not a standalone schema-valid receipt.
 
 ```yaml
 decision_id: DR-2026-07-10-loan001
@@ -63,7 +65,7 @@ accountability:
   accountable_owner: lending_manager_m.ortiz
 ```
 
-See the [complete loan receipt](./examples/loan-denial-receipt.yaml).
+See the [complete loan receipt](./examples/loan-denial-receipt.yaml) and the schema-valid [RC2 end-to-end artifact bundle](./examples/end-to-end-artifact-bundle/README.md), which includes a deterministic resolved authority path, sealed parent receipt, `ReopenEvent`, and linked child revalidation.
 
 ## Lifecycle
 
@@ -129,6 +131,7 @@ Examples are included to demonstrate different authority and evidence failures, 
 | [Claim payout](./examples/claim-payout-receipt.yaml) | Check-time and use-time context mismatch, related to CWE-367 |
 | [Hallucinated legal precedent](./docs/case-study-ai-hallucinated-precedent.md) | Unsupported evidence blocks authority |
 | [Certification-gated deployment](./docs/quickstart.md) | Previously valid authority becomes stale and requires re-verification |
+| [RC2 authority-path bundle](./examples/end-to-end-artifact-bundle/README.md) | Deterministic authority path, canonical path hash, dependency-aware reopen, and linked child revalidation |
 
 ## Conformance
 
