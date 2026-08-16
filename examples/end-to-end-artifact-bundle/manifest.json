@@ -2,19 +2,19 @@
   "claim_boundary": "Demonstrates bounded allow/refuse, immutable sealed-parent preservation, drift detection, append-only ReopenEvent, and linked revalidation child.",
   "profile": "illustrative certification-gated deployment",
   "relationships": {
-    "child_lifecycle": "DR-2026-08-16-bfe3e1-child-3353ee",
-    "refused_attempt": "DR-2026-08-16-7cf76f",
-    "reopen_event": "RE-8094cc52d44a",
-    "sealed_parent": "DR-2026-08-16-bfe3e1"
+    "child_lifecycle": "DR-2026-08-16-c2e317-child-753e15",
+    "refused_attempt": "DR-2026-08-16-966799",
+    "reopen_event": "RE-eec44c4374cc",
+    "sealed_parent": "DR-2026-08-16-c2e317"
   },
   "sha256": {
     "allow-request.json": "7f64f9d27379e990678ffdedc77ae5121c1684b2bc5e873014739e3f29184b6c",
-    "allow-sealed-receipt.json": "7072d25c6aacd13a23c395386006d8dad2d1450db60a1b0231252246dda434f9",
+    "allow-sealed-receipt.json": "5afa1eb794ac1a6d995233225d20674ff6b86becc58b2abaa50446767478444f",
     "authority-basis.yaml": "4b06c362e3f88d0f1f4342e76e29880fbcfdbcea9b752bd5e4f4a29f1bc334a9",
-    "child-revalidation.json": "b88ff830a9f166f99370b28c6b5dff042e9fbd2b018bc2e9336ca3592d6c418f",
+    "child-revalidation.json": "8bacf2928058d3977eb980407400d3b37d1b26f7b450fa1a26c0f0b3b5e9ab19",
     "execution-evidence.json": "5c0f39d41bb9605edab55137c29b5b59221b144c2d07fb36bf53dc6abdbcedd0",
-    "refuse-receipt.json": "df8c948287923718eb81faaa72713536d8a63d5f9df46b255bdb79bbf6f33bcf",
+    "refuse-receipt.json": "5c2e134bef69e3290049a9cc0472590d133dc74ae2c055fcd9a081fa6dfda31b",
     "refuse-request.json": "de0fd8d049aef5409b76e08319787dcba91ecf4605f1824a8117a1ea1c6477c9",
-    "reopen-event.json": "c85c87062133b7bbc4d1955aa67ccf05b9c45634bebf9a892abfa6cef8f20ab6"
+    "reopen-event.json": "bff534995fc3b71e99161e894cbd363bbb710aafb420cf180fcd2be0c6d68571"
   }
 }

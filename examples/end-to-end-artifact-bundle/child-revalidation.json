@@ -3,19 +3,19 @@
   "authority": {},
   "boundary": {},
   "check": {},
-  "decision_id": "DR-2026-08-16-bfe3e1-child-3353ee",
+  "decision_id": "DR-2026-08-16-c2e317-child-753e15",
   "decision_type": "deploy_certified_workflow",
   "execution": {},
   "findings": [
     {
-      "at": "2026-08-16T13:57:21+00:00",
+      "at": "2026-08-16T14:26:33+00:00",
       "finding": "evidence drift detected by watcher - re-verification required"
     }
   ],
-  "parent_receipt_id": "DR-2026-08-16-bfe3e1",
+  "parent_receipt_id": "DR-2026-08-16-c2e317",
   "receipt": {},
   "recommendation": {},
-  "reopen_event_id": "RE-8094cc52d44a",
+  "reopen_event_id": "RE-eec44c4374cc",
   "request": {
     "action_hash": "sha256:e29c709eaf9c58a5207d795de87e34d17b303b3f3247b77daac0649468e32692",
     "canonical_action": {
@@ -31,7 +31,7 @@
       "path": "A"
     },
     "requested_action": "deploy_certified_workflow",
-    "requested_at": "2026-08-16T13:57:21+00:00",
+    "requested_at": "2026-08-16T14:26:33+00:00",
     "requester": "release_workflow",
     "requester_authority": "runbook://cert-gated-deployment#v3"
   },

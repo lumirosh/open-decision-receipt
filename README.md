@@ -73,7 +73,7 @@ accountability:
   accountable_owner: lending_manager_m.ortiz
 ```
 
-See the [complete loan receipt](./examples/loan-denial-receipt.yaml) and the schema-valid [RC2 end-to-end artifact bundle](./examples/end-to-end-artifact-bundle/README.md), which includes a deterministic resolved authority path, sealed parent receipt, `ReopenEvent`, and linked child revalidation.
+See the [complete loan receipt](./examples/loan-denial-receipt.yaml) and the schema-valid [RC3 end-to-end artifact bundle](./examples/end-to-end-artifact-bundle/README.md), which includes a deterministic resolved authority path, sealed parent receipt, `ReopenEvent`, and linked child revalidation.
 
 ## Lifecycle
 
@@ -141,7 +141,7 @@ Examples are included to demonstrate different authority and evidence failures, 
 | [Claim payout](./examples/claim-payout-receipt.yaml) | Check-time and use-time context mismatch, related to CWE-367 |
 | [Hallucinated legal precedent](./docs/case-study-ai-hallucinated-precedent.md) | Unsupported evidence blocks authority |
 | [Certification-gated deployment](./docs/quickstart.md) | Previously valid authority becomes stale and requires re-verification |
-| [RC2 authority-path bundle](./examples/end-to-end-artifact-bundle/README.md) | Deterministic authority path, canonical path hash, dependency-aware reopen, and linked child revalidation |
+| [RC3 authority-path bundle](./examples/end-to-end-artifact-bundle/README.md) | Deterministic authority path, canonical path hash, dependency-aware reopen, and linked child revalidation |
 
 ## Conformance
 

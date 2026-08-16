@@ -26,7 +26,7 @@ Open Decision Receipt has one core object and several ways to inspect it. Choose
 
 ## Runnable release artifact
 
-- [RC2 end-to-end artifact bundle](../examples/end-to-end-artifact-bundle/README.md)
+- [RC3 end-to-end artifact bundle](../examples/end-to-end-artifact-bundle/README.md)
 
 ## Research direction
 
