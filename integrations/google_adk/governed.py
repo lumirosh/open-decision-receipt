@@ -118,7 +118,13 @@ def decide_action(
         path = store.save(receipt)
         return {"decision_id": decision_id, "status": receipt.status, "receipt_path": str(path.resolve()), "external_action_performed": False}
 
-    receipt = approve(receipt, approver=approver, scope=receipt.decision_type)
+    receipt = approve(
+        receipt,
+        approver=approver,
+        bundles=CasePackStore(case_pack),
+        approver_role=approver_role,
+        scope=receipt.decision_type,
+    )
     receipt.authority.update(authority | {"reviewer_decision": "approved"})
     actions = Path(actions_dir)
     actions.mkdir(parents=True, exist_ok=True)

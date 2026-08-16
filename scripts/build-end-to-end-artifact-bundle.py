@@ -64,7 +64,7 @@ def main(output: Path) -> None:
 
         parent = verify_action(allow_request, bundles)
         assert parent.status == NEEDS_HUMAN_REVIEW
-        parent = approve(parent, approver="named-change-authority")
+        parent = approve(parent, approver="named-change-authority", bundles=bundles, approver_role="change_authority")
         parent = seal(parent, execution, bundles)
         assert parent.status == SEALED
         receipts.save(parent)

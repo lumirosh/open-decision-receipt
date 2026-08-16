@@ -21,7 +21,7 @@ from __future__ import annotations
 import copy
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -83,6 +83,26 @@ def canonical_action(workflow: str, action: str, params: dict | None = None) -> 
         "workflow": workflow,
         "action_type": action,
         "parameters": copy.deepcopy(params or {}),
+    }
+
+
+def approver_authority_snapshot(
+    bundle: dict | None, approver: str, approver_role: str
+) -> dict | None:
+    if not bundle:
+        return None
+    gate = bundle.get("human_gate") or {}
+    allowed_roles = sorted(gate.get("allowed_roles") or [])
+    assigned_approvers = sorted((gate.get("role_assignments") or {}).get(approver_role) or [])
+    if approver_role not in allowed_roles or approver not in assigned_approvers:
+        return None
+    return {
+        "bundle": bundle.get("workflow"),
+        "bundle_version": bundle.get("version"),
+        "approver": approver,
+        "approver_role": approver_role,
+        "allowed_roles": allowed_roles,
+        "assigned_approvers": assigned_approvers,
     }
 
 
@@ -339,7 +359,14 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
     return r
 
 
-def approve(r: Receipt, approver: str, scope: str | None = None) -> Receipt:
+def approve(
+    r: Receipt,
+    approver: str,
+    bundles: BundleStore,
+    approver_role: str,
+    scope: str | None = None,
+    approval_ttl_seconds: int = 300,
+) -> Receipt:
     """The human signs. Presence becomes authorship."""
     if r.status != NEEDS_HUMAN_REVIEW:
         raise ValueError(f"cannot approve receipt in status '{r.status}'")
@@ -349,13 +376,24 @@ def approve(r: Receipt, approver: str, scope: str | None = None) -> Receipt:
         raise ValueError("cannot approve consumed authority; reconciliation and a new decision are required")
     if not r.request.get("action_hash"):
         raise ValueError("cannot approve without an action commitment")
+    approver_snapshot = approver_authority_snapshot(
+        bundles.resolve(r.workflow), approver, approver_role
+    )
+    if approver_snapshot is None:
+        raise PermissionError(f"role '{approver_role}' is not authorized to approve this workflow")
     r.authority |= {
         "approver": approver,
+        "approver_role": approver_role,
         "approval_method": "explicit",
         "approved_at": now_iso(),
         "authority_basis": r.request.get("requester_authority", "unspecified"),
         "approval_scope": scope or r.request["requested_action"],
         "action_hash": r.request["action_hash"],
+        "approver_authority_snapshot": approver_snapshot,
+        "approver_authority_hash": sha256_of(approver_snapshot),
+        "approval_expires_at": (
+            datetime.now(timezone.utc) + timedelta(seconds=approval_ttl_seconds)
+        ).isoformat(),
         "separation_of_duties_ok": approver != r.request["requester"],
         "authorization_use": "single_use",
         "consumed_at": None,
@@ -375,14 +413,15 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
     if r.status != AUTHORIZED:
         raise ValueError(f"cannot seal receipt in status '{r.status}'")
 
+    bundle_now = bundles.resolve(r.workflow)
     evidence_now, missing = bundles.evidence_for(r.workflow, r.check.get("evidence_refs", []))
     ctx_now = context_hash(evidence_now)
-    authority_now = authority_hash(bundles.resolve(r.workflow), {
+    authority_now = authority_hash(bundle_now, {
         "actor": r.request.get("requester"),
         "risk_class": r.risk_class,
         "action": r.request.get("requested_action"),
     })
-    path_now = resolved_authority_path(bundles.resolve(r.workflow), {
+    path_now = resolved_authority_path(bundle_now, {
         "workflow": r.workflow,
         "actor": r.request.get("requester"),
         "risk_class": r.risk_class,
@@ -420,6 +459,36 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
         r.status = NEEDS_HUMAN_REVIEW
         r.flag("execution record was not canonical JSON - reconciliation required")
         return r
+
+    if r.authority.get("approval_method") == "explicit":
+        binding_fields = (
+            "approver_role",
+            "approver_authority_snapshot",
+            "approver_authority_hash",
+            "approval_expires_at",
+        )
+        if any(not r.authority.get(field) for field in binding_fields):
+            r.status = NEEDS_HUMAN_REVIEW
+            r.flag("explicit approval is unbound - reconciliation required")
+            return r
+        try:
+            approval_expired = _expired({"expires_at": r.authority["approval_expires_at"]})
+        except (TypeError, ValueError):
+            approval_expired = True
+        if approval_expired:
+            r.status = NEEDS_HUMAN_REVIEW
+            r.flag("approval expired before execution - reconciliation required")
+            return r
+        approver_snapshot_now = approver_authority_snapshot(
+            bundle_now,
+            r.authority.get("approver", ""),
+            r.authority.get("approver_role", ""),
+        )
+        approver_hash_now = sha256_of(approver_snapshot_now) if approver_snapshot_now else None
+        if approver_hash_now != r.authority.get("approver_authority_hash"):
+            r.status = NEEDS_HUMAN_REVIEW
+            r.flag("approver authority changed before execution - reconciliation required")
+            return r
 
     if r.authority.get("action_hash") is None or execution_action_hash != r.authority["action_hash"]:
         r.status = NEEDS_HUMAN_REVIEW

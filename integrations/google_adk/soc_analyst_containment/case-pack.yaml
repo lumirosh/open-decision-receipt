@@ -2,6 +2,9 @@ workflow: soc_analyst_containment_reference
 version: 1
 human_gate:
   allowed_roles: [soc_analyst, incident_commander]
+  role_assignments:
+    soc_analyst: [reviewer, synthetic_reviewer]
+    incident_commander: [reviewer, synthetic_reviewer]
   decisions: [approve, reject, escalate]
 authority_rules:
   - actors: [threat_detection_agent]

@@ -2,6 +2,9 @@ workflow: loan_denial_reference
 version: 1
 human_gate:
   allowed_roles: [loan_officer, lending_manager]
+  role_assignments:
+    loan_officer: [reviewer, synthetic_reviewer]
+    lending_manager: [reviewer, synthetic_reviewer]
   decisions: [approve, reject, escalate]
 authority_rules:
   - actors: [credit_scoring_model]

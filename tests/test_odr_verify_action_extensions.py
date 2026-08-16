@@ -45,7 +45,7 @@ def deploy_request():
 
 
 def sealed_receipt(bundle_store, deploy_request):
-    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator", bundles=bundle_store, approver_role="change_authority")
     return seal(receipt, {"executed_by": "workflow", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundle_store)
 
 
@@ -102,7 +102,7 @@ def test_resave_does_not_double_append_chain(bundle_store, receipt_store, deploy
 
 
 def test_action_parameter_mutation_refuses_seal(bundle_store, deploy_request):
-    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator", bundles=bundle_store, approver_role="change_authority")
     assert receipt.authority["action_hash"] == receipt.request["action_hash"]
 
     result = seal(receipt, {
@@ -120,7 +120,7 @@ def test_action_parameter_mutation_refuses_seal(bundle_store, deploy_request):
 
 
 def test_missing_action_commitment_fails_closed(bundle_store, deploy_request):
-    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator", bundles=bundle_store, approver_role="change_authority")
     receipt.request.pop("action_hash")
     receipt.authority.pop("action_hash")
 
@@ -139,7 +139,7 @@ def test_grammar_requires_authority(bundle_store, deploy_request):
 
 
 def test_grammar_scopes_to_authorized_receipt(bundle_store, deploy_request):
-    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator", bundles=bundle_store, approver_role="change_authority")
     schema = compile_action_schema(receipt)
 
     assert schema["properties"]["action"]["enum"] == ["deploy_certified_workflow"]

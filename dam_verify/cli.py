@@ -3,7 +3,7 @@
 Usage:
     python -m dam_verify.cli validate <your-receipt.yaml>
     python -m dam_verify.cli verify   examples/verify-action-deploy.json
-    python -m dam_verify.cli approve  <decision_id> --approver operator
+    python -m dam_verify.cli approve  <decision_id> --approver operator --approver-role change_authority
     python -m dam_verify.cli seal     <decision_id> --result success
     python -m dam_verify.cli replay   <decision_id>
     python -m dam_verify.cli grammar  <decision_id>
@@ -66,7 +66,7 @@ def main(argv=None):
 
     vl = sub.add_parser("validate"); vl.add_argument("receipt_file")
     v = sub.add_parser("verify");  v.add_argument("action_file")
-    a = sub.add_parser("approve"); a.add_argument("decision_id"); a.add_argument("--approver", required=True)
+    a = sub.add_parser("approve"); a.add_argument("decision_id"); a.add_argument("--approver", required=True); a.add_argument("--approver-role", required=True)
     s = sub.add_parser("seal");    s.add_argument("decision_id"); s.add_argument("--result", default="success")
     sub.add_parser("watch")
     sh = sub.add_parser("show");   sh.add_argument("decision_id")
@@ -88,7 +88,7 @@ def main(argv=None):
         _print(r)
     elif args.cmd == "approve":
         r = receipts.load(args.decision_id)
-        r = approve(r, approver=args.approver)
+        r = approve(r, approver=args.approver, bundles=bundles, approver_role=args.approver_role)
         receipts.save(r)
         _print(r)
     elif args.cmd == "seal":

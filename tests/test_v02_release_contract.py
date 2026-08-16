@@ -40,8 +40,17 @@ def execution(receipt):
     }
 
 
+def human_approve(receipt, bundles, approver="operator"):
+    return approve(
+        receipt,
+        approver=approver,
+        bundles=bundles,
+        approver_role="change_authority",
+    )
+
+
 def sealed(bundles):
-    receipt = approve(verify_action(request(), bundles), approver="operator")
+    receipt = human_approve(verify_action(request(), bundles), bundles)
     return seal(receipt, execution(receipt), bundles)
 
 
@@ -67,7 +76,7 @@ def test_authority_and_path_drift_reopen_sealed_parent(stores):
 
 def test_authority_change_before_consequence_refuses_seal(stores):
     bundles, _, bundle_path = stores
-    receipt = approve(verify_action(request(), bundles), approver="operator")
+    receipt = human_approve(verify_action(request(), bundles), bundles)
     bundle = yaml.safe_load(bundle_path.read_text())
     bundle["authority_rules"][0]["allowed_actions"] = []
     bundle_path.write_text(yaml.safe_dump(bundle))
@@ -78,9 +87,86 @@ def test_authority_change_before_consequence_refuses_seal(stores):
     assert any("authority changed" in item["finding"] for item in result.findings)
 
 
+def test_unbound_explicit_approval_fails_closed(stores):
+    bundles, _, _ = stores
+    receipt = human_approve(verify_action(request(), bundles), bundles)
+    for field in (
+        "approver_role",
+        "approver_authority_snapshot",
+        "approver_authority_hash",
+        "approval_expires_at",
+    ):
+        receipt.authority.pop(field)
+
+    result = seal(receipt, execution(receipt), bundles)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert result.authority["consumed_at"]
+    assert any("approval is unbound" in item["finding"] for item in result.findings)
+
+
+def test_approver_must_hold_the_claimed_role(stores):
+    bundles, _, _ = stores
+    with pytest.raises(PermissionError, match="not authorized"):
+        approve(
+            verify_action(request(), bundles),
+            approver="intruder",
+            bundles=bundles,
+            approver_role="change_authority",
+        )
+
+
+def test_expired_human_approval_refuses_seal(stores):
+    bundles, _, _ = stores
+    receipt = approve(
+        verify_action(request(), bundles),
+        approver="operator",
+        bundles=bundles,
+        approver_role="change_authority",
+        approval_ttl_seconds=-1,
+    )
+
+    result = seal(receipt, execution(receipt), bundles)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert result.authority["consumed_at"]
+    assert any("approval expired" in item["finding"] for item in result.findings)
+
+
+def test_malformed_approval_expiry_fails_closed(stores):
+    bundles, _, _ = stores
+    receipt = human_approve(verify_action(request(), bundles), bundles)
+    receipt.authority["approval_expires_at"] = "not-a-timestamp"
+
+    result = seal(receipt, execution(receipt), bundles)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert result.authority["consumed_at"]
+    assert any("approval expired" in item["finding"] for item in result.findings)
+
+
+def test_revoked_approver_role_refuses_seal(stores):
+    bundles, _, bundle_path = stores
+    receipt = approve(
+        verify_action(request(), bundles),
+        approver="operator",
+        bundles=bundles,
+        approver_role="change_authority",
+    )
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle["human_gate"]["role_assignments"]["change_authority"] = []
+    bundle_path.write_text(yaml.safe_dump(bundle))
+
+    result = seal(receipt, execution(receipt), bundles)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert result.authority["consumed_at"]
+    assert any("approver authority changed" in item["finding"] for item in result.findings)
+
+
 def test_failed_seal_consumes_authority_and_requires_reconciliation(stores):
     bundles, _, bundle_path = stores
-    receipt = approve(verify_action(request(), bundles), approver="operator")
+    receipt = human_approve(verify_action(request(), bundles), bundles)
     bundle = yaml.safe_load(bundle_path.read_text())
     bundle["authority_rules"][0]["allowed_actions"] = []
     bundle_path.write_text(yaml.safe_dump(bundle))
@@ -94,12 +180,12 @@ def test_failed_seal_consumes_authority_and_requires_reconciliation(stores):
     with pytest.raises(ValueError, match="consumed"):
         seal(result, execution(result), bundles)
     with pytest.raises(ValueError, match="consumed"):
-        approve(result, approver="operator-2")
+        human_approve(result, bundles, approver="operator-2")
 
 
 def test_malformed_execution_record_is_consumed_and_persistable(stores):
     bundles, receipts, _ = stores
-    receipt = approve(verify_action(request(), bundles), approver="operator")
+    receipt = human_approve(verify_action(request(), bundles), bundles)
 
     result = seal(receipt, execution(receipt) | {"raw": {"not-json"}}, bundles)
     receipts.save(result)
@@ -151,7 +237,7 @@ def test_expired_authority_cannot_authorize(stores):
 
 def test_store_does_not_duplicate_second_identical_seal(stores):
     bundles, receipts, _ = stores
-    first = approve(verify_action(request(), bundles), approver="operator")
+    first = human_approve(verify_action(request(), bundles), bundles)
     stale = deepcopy(first)
     receipts.save(seal(first, execution(first), bundles))
 
@@ -238,7 +324,7 @@ def test_caller_context_cannot_replace_policy_required_evidence(stores):
 
 def test_authority_path_change_before_consequence_refuses_seal(stores):
     bundles, _, bundle_path = stores
-    receipt = approve(verify_action(request(), bundles), approver="operator")
+    receipt = human_approve(verify_action(request(), bundles), bundles)
     bundle = yaml.safe_load(bundle_path.read_text())
     bundle["authority_rules"][0]["required_evidence"].append("deployment_window")
     bundle["evidence_sources"]["deployment_window"] = {"version": 1, "content": "OPEN"}

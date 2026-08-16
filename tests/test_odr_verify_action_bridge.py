@@ -58,7 +58,7 @@ def test_cert_drift_preserves_sealed_parent_and_creates_linked_child(bundle_stor
     receipt = verify_action(deploy_request, bundle_store)
     assert receipt.status == NEEDS_HUMAN_REVIEW
 
-    receipt = approve(receipt, approver="operator")
+    receipt = approve(receipt, approver="operator", bundles=bundle_store, approver_role="change_authority")
     receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundle_store)
     assert receipt.status == SEALED
     assert receipt.replayable
@@ -83,7 +83,7 @@ def test_cert_drift_preserves_sealed_parent_and_creates_linked_child(bundle_stor
 
 
 def test_seal_refuses_to_seal_if_basis_changes_between_check_and_use(bundle_store, deploy_request):
-    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator", bundles=bundle_store, approver_role="change_authority")
     revoke_cert(bundle_store)
 
     receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundle_store)
@@ -154,7 +154,7 @@ def test_cli_verify_action_lifecycle_uses_configurable_paths(tmp_path, bundle_st
     rc = cli.main([
         "--bundles-dir", str(bundle_store.root),
         "--receipts-dir", str(receipts_dir),
-        "approve", decision_id, "--approver", "operator",
+        "approve", decision_id, "--approver", "operator", "--approver-role", "change_authority",
     ])
     assert rc == 0
     approve_out = json.loads(capsys.readouterr().out)

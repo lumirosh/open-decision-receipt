@@ -52,6 +52,16 @@ recommendation:
 
 authority:
   approver: person | role              # must differ from recommender for SoD
+  approver_role: string                # role asserted by the approver
+  approver_authority_snapshot:         # bundle-backed role state at approval
+    bundle: string
+    bundle_version: integer | string
+    approver: string
+    approver_role: string
+    allowed_roles: [strings]
+    assigned_approvers: [strings]
+  approver_authority_hash: sha256:hex
+  approval_expires_at: timestamp
   approval_method: explicit | policy | delegated | break_glass | none | unknown | null
   approved_at: timestamp
   authority_basis: policy_or_role_reference

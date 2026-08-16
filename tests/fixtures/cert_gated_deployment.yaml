@@ -1,5 +1,9 @@
 workflow: cert_gated_deployment
 version: 3
+human_gate:
+  allowed_roles: [change_authority]
+  role_assignments:
+    change_authority: [operator, named-change-authority]
 authority_rules:
   - actors: [release_workflow, ops_agent]
     risk_classes: [high]

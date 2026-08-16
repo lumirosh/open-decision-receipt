@@ -32,7 +32,7 @@ Capture the `decision_id` from the output.
 DECISION_ID="DR-YYYY-MM-DD-xxxxxx"
 
 dam-verify --receipts-dir /tmp/odr-receipts \
-  approve "$DECISION_ID" --approver operator
+  approve "$DECISION_ID" --approver operator --approver-role change_authority
 
 dam-verify --receipts-dir /tmp/odr-receipts \
   seal "$DECISION_ID"
