@@ -82,6 +82,10 @@ execution:                             # TIME OF USE
   actual_action: string                # descriptive compatibility field
   canonical_action: object             # runtime's consequential object
   action_hash: sha256:hex               # must match approved action_hash
+  execution_attempted: true | false
+  outcome_state: indeterminate | confirmed
+  reconciliation_required: true | false
+  execution_record_invalid: TypeError | ValueError | null
   context_hash_at_execution: hash      # differs from check hash => TOCTOU (CWE-367)
   execution_result: string
 

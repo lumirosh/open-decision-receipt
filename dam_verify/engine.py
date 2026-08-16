@@ -345,6 +345,8 @@ def approve(r: Receipt, approver: str, scope: str | None = None) -> Receipt:
         raise ValueError(f"cannot approve receipt in status '{r.status}'")
     if r.check.get("missing"):
         raise ValueError(f"cannot approve with missing evidence: {r.check['missing']}")
+    if r.authority.get("consumed_at"):
+        raise ValueError("cannot approve consumed authority; reconciliation and a new decision are required")
     if not r.request.get("action_hash"):
         raise ValueError("cannot approve without an action commitment")
     r.authority |= {
@@ -388,13 +390,36 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
         "context_refs": r.check.get("evidence_refs", []),
     })
 
+    executed_at = now_iso()
     execution_action = execution_record.get("canonical_action")
-    execution_action_hash = sha256_of(execution_action) if isinstance(execution_action, dict) else None
-    r.execution = dict(execution_record) | {
-        "executed_at": now_iso(),
-        "context_hash_at_execution": ctx_now,
-        "action_hash": execution_action_hash,
-    }
+    try:
+        execution_action_hash = sha256_of(execution_action) if isinstance(execution_action, dict) else None
+        r.execution = dict(execution_record) | {
+            "executed_at": executed_at,
+            "context_hash_at_execution": ctx_now,
+            "action_hash": execution_action_hash,
+            "execution_attempted": True,
+            "outcome_state": "indeterminate",
+            "reconciliation_required": True,
+        }
+        execution_hash = sha256_of(r.execution)
+    except (TypeError, ValueError) as exc:
+        execution_action_hash = None
+        r.execution = {
+            "executed_at": executed_at,
+            "execution_attempted": True,
+            "outcome_state": "indeterminate",
+            "reconciliation_required": True,
+            "execution_record_invalid": type(exc).__name__,
+        }
+        execution_hash = sha256_of(r.execution)
+    r.authority["consumed_at"] = now_iso()
+    r.authority["consumed_by_execution_hash"] = execution_hash
+
+    if r.execution.get("execution_record_invalid"):
+        r.status = NEEDS_HUMAN_REVIEW
+        r.flag("execution record was not canonical JSON - reconciliation required")
+        return r
 
     if r.authority.get("action_hash") is None or execution_action_hash != r.authority["action_hash"]:
         r.status = NEEDS_HUMAN_REVIEW
@@ -418,7 +443,8 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
         return r
 
     r.status = SEALED
-    r.authority["consumed_at"] = now_iso()
+    r.execution["outcome_state"] = "confirmed"
+    r.execution["reconciliation_required"] = False
     r.authority["consumed_by_execution_hash"] = sha256_of(r.execution)
     r.receipt = {
         "replayable": True,

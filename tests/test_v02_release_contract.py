@@ -78,6 +78,39 @@ def test_authority_change_before_consequence_refuses_seal(stores):
     assert any("authority changed" in item["finding"] for item in result.findings)
 
 
+def test_failed_seal_consumes_authority_and_requires_reconciliation(stores):
+    bundles, _, bundle_path = stores
+    receipt = approve(verify_action(request(), bundles), approver="operator")
+    bundle = yaml.safe_load(bundle_path.read_text())
+    bundle["authority_rules"][0]["allowed_actions"] = []
+    bundle_path.write_text(yaml.safe_dump(bundle))
+
+    result = seal(receipt, execution(receipt), bundles)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert result.authority["consumed_at"]
+    assert result.execution["execution_attempted"] is True
+    assert result.execution["reconciliation_required"] is True
+    with pytest.raises(ValueError, match="consumed"):
+        seal(result, execution(result), bundles)
+    with pytest.raises(ValueError, match="consumed"):
+        approve(result, approver="operator-2")
+
+
+def test_malformed_execution_record_is_consumed_and_persistable(stores):
+    bundles, receipts, _ = stores
+    receipt = approve(verify_action(request(), bundles), approver="operator")
+
+    result = seal(receipt, execution(receipt) | {"raw": {"not-json"}}, bundles)
+    receipts.save(result)
+
+    restored = receipts.load(result.decision_id)
+    assert restored.status == NEEDS_HUMAN_REVIEW
+    assert restored.authority["consumed_at"]
+    assert restored.execution["execution_record_invalid"] == "TypeError"
+    assert restored.execution["reconciliation_required"] is True
+
+
 def test_successful_consequence_consumes_single_use_authority(stores):
     bundles, _, _ = stores
     receipt = sealed(bundles)
@@ -86,6 +119,8 @@ def test_successful_consequence_consumes_single_use_authority(stores):
     assert receipt.authority["authorization_use"] == "single_use"
     assert receipt.authority["consumed_at"]
     assert receipt.authority["consumed_by_execution_hash"].startswith("sha256:")
+    assert receipt.execution["outcome_state"] == "confirmed"
+    assert receipt.execution["reconciliation_required"] is False
     with pytest.raises(ValueError, match="consumed"):
         seal(receipt, execution(receipt), bundles)
 

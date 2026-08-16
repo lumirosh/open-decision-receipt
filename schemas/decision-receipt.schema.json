@@ -458,6 +458,16 @@
           "type": ["string", "null"],
           "pattern": "^sha256:[a-f0-9]{64}$"
         },
+        "execution_attempted": {"type": "boolean"},
+        "outcome_state": {
+          "type": "string",
+          "enum": ["indeterminate", "confirmed"]
+        },
+        "reconciliation_required": {"type": "boolean"},
+        "execution_record_invalid": {
+          "type": "string",
+          "enum": ["TypeError", "ValueError"]
+        },
         "context_hash_at_execution": {
           "type": [
             "string",
