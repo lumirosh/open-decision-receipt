@@ -17,6 +17,43 @@ These are weakness-class mappings, not CVE assignments. A CVE identifies a discl
 | Excessive agency | OWASP LLM06 | Automation has broader authority than the task needs | requester authority and execution boundary |
 | Business logic flaw | Application security classic | Permitted actions chain into a prohibited outcome | bounded scope and denied actions |
 
+## Human approval is an attack surface
+
+A human approval gate is a privileged security boundary. The presence of an approval event does not prove that an authenticated, authorized human approved the exact action that executed.
+
+```text
+APPROVAL EVENT
+      ≠
+AUTHENTICATED HUMAN ACT
+      ≠
+AUTHORIZED HUMAN ACT
+      ≠
+EXACT-SCOPE APPROVAL
+      ≠
+EXECUTION WITHIN APPROVED SCOPE
+```
+
+**CVE-2026-58482** provides a concrete example. Network-AI versions 5.0.0 through 5.12.1 exposed mutating `ApprovalInbox` approval endpoints without authorization and returned wildcard CORS headers. A party able to reach the inbox could approve a pending high-risk operation without the intended human's consent. NVD maps the vulnerability to **CWE-862 (Missing Authorization)** and **CWE-352 (Cross-Site Request Forgery)**. Version 5.12.2 added optional bearer-secret protection for mutating approval endpoints.
+
+The CVE demonstrates an authenticity and authorization failure at the approval interface. It does not demonstrate every approval-scope failure below.
+
+| Boundary | ODR responsibility | Integrating-system responsibility |
+|---|---|---|
+| Principal authenticity | preserve the asserted approver and authority snapshot | authenticate the human and protect the approval channel |
+| Approver authority | bind the asserted principal to a role assignment and recheck it at seal | provide a trusted, current authority source |
+| Approval freshness | bind an expiry and consume the single-use authority on an execution attempt | protect session, nonce, and transport integrity |
+| Exact action | bind approval to a canonical action hash | construct the correct action from trusted inputs |
+| Execution reconciliation | refuse sealing when the recorded execution action hash differs | report or attest what actually executed |
+
+ODR does not claim to prevent CVE-2026-58482. It addresses the downstream evidence boundary while relying on the integrating system for authenticated identity, protected transport, and trustworthy runtime observation.
+
+Primary references:
+
+- [NVD: CVE-2026-58482](https://nvd.nist.gov/vuln/detail/CVE-2026-58482)
+- [GitHub Security Advisory: GHSA-mxjx-28vx-xjjj](https://github.com/Jovancoding/Network-AI/security/advisories/GHSA-mxjx-28vx-xjjj)
+- [Fix commit](https://github.com/Jovancoding/Network-AI/commit/a59c13a1f0ce0e8a0779a90343eef92fac5ab4c3)
+- [Network-AI v5.12.2](https://github.com/Jovancoding/Network-AI/releases/tag/v5.12.2)
+
 ## Diagnostic questions
 
 1. What did the human check?

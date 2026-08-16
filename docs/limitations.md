@@ -18,9 +18,11 @@ Identity binding belongs in the integrating system.
 
 The reference resolver projects one exact path from a supplied authority bundle. It does not discover organizational authority, authenticate its source, replace IAM or policy enforcement, or make observed behavior authoritative. Integrating systems remain responsible for trusted bundle provenance and runtime enforcement.
 
-## A receipt does not verify execution stayed within scope
+## Recorded execution binding is exact, not semantic or independent
 
-The `Reconciled` state in the canonical lifecycle asks whether observed execution remained within authority and satisfied its obligations. The reference implementation does not answer that question. `approval_scope` and `actual_action` are nullable string fields. The reference runtime records them but does not semantically compare them, and it produces no `Reconciled` verdict. A receipt showing both fields is not evidence that they were checked against each other.
+The reference lifecycle binds request, approval, and recorded execution to a canonical action and refuses sealing when their action hashes differ. This is exact object equality, not semantic subset reasoning: it does not decide whether one transfer limit, query, trajectory, or sequence is safely contained within another.
+
+The executor still supplies the execution record. ODR does not independently observe a tool, external system, or real-world outcome, and it does not yet record a named comparison method/version or a separate `match | mismatch | insufficient_evidence` verdict. Integrations that require independent outcome assurance must provide trusted execution attestation or observation.
 
 ## The hash chain is not a signature scheme
 
@@ -34,9 +36,13 @@ Bad evidence with a good receipt is still bad evidence. The receipt makes that d
 
 ## Human approval is not automatically good approval
 
-The receipt records scoped approval and its asserted authority basis. The reference implementation does not prove cryptographic identity, organizational authority, competence, independence, freedom from pressure, or authorship.
+The receipt binds explicit approval to an asserted approver, assigned role, authority snapshot, expiry, and canonical action. The reference implementation does not prove cryptographic identity, organizational authority beyond the supplied bundle, competence, independence, freedom from pressure, or authorship.
 
 That is why the schema records dissenting signals, separation of duties, approval basis, and accountability.
+
+## Failed-seal consumption depends on persistence
+
+`seal()` consumes authority in the returned receipt as soon as execution is attempted, and the shipped CLI and adapters persist that result. The library call and persistence step are not one atomic store transaction. A custom host that discards a failed `seal()` result and reloads the earlier authorized receipt can lose the consumption record. Library integrations must persist every seal result; a future store-level transaction is required before claiming atomic one-shot enforcement across arbitrary hosts.
 
 ## Not legal advice
 

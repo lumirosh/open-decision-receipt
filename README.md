@@ -1,16 +1,24 @@
 # Open Decision Receipt
 
-**Human-in-the-loop is not evidence. A Decision Receipt is.**
+## Human-in-the-loop? Prove it.
+
+High-risk AI actions increasingly require human approval. An approval event alone does not establish which human acted, whether they held authority, what exact action they approved, or whether the recorded execution stayed inside it.
+
+**Open Decision Receipt (ODR)** is a vendor-neutral receipt format and reference lifecycle for preserving that consequential boundary.
 
 ```text
-A trace shows what ran.
-A Decision Receipt preserves why it was authorized.
-Watch determines whether that basis still holds.
+AUTHORIZED HUMAN (asserted by the integrating system)
+        ↓
+CANONICAL APPROVED ACTION
+        ↓
+RECORDED EXECUTION
+        ↓
+ACTION HASH MUST MATCH TO SEAL
 ```
 
-AI systems increasingly recommend, route, approve, or initiate actions that affect money, access, customers, legal outcomes, and production systems. Execution logs can show that an action happened. They rarely preserve the complete authority boundary: what evidence was checked, who or what was allowed to decide, what scope was granted, what actually executed, and whether the basis changed later.
+> **Prove the authorized human approved the exact action recorded at execution.**
 
-Open Decision Receipt is a vendor-neutral schema and reference lifecycle for preserving that boundary.
+A trace shows what ran. Policy says what should happen. A Decision Receipt preserves why this exact consequence was allowed, and Watch determines whether that basis still holds.
 
 ## Try it in 60 seconds
 
@@ -88,8 +96,10 @@ The lifecycle is fail-closed:
 
 - unknown authority or missing evidence does not become approval
 - changed context blocks sealing
+- an explicit approval is bound to an asserted approver, assigned role, authority snapshot, expiry, and canonical action hash
+- recorded execution must reproduce the approved canonical action hash or sealing is refused
 - later evidence or authority drift appends a `ReopenEvent` and starts a linked child lifecycle while preserving the sealed parent
-- successful consequence consumes the bounded single-use authorization; reuse requires a new lifecycle
+- an execution attempt consumes the bounded single-use authorization in the shipped CLI and adapters; reconciliation requires a new lifecycle
 - promotion into reusable verified knowledge remains a separate human gate
 
 Read the complete [lifecycle](./docs/lifecycle.md) and [limitations](./docs/limitations.md).
