@@ -137,6 +137,7 @@ def decide_action(
     artifact_path.write_text(json.dumps({
         "decision_id": decision_id,
         "subject_ref": executed_action["parameters"].get("subject_ref"),
+        "action": executed_action["action_type"],
         "canonical_action": executed_action,
         "mode": "synthetic_local_only",
         "external_action_performed": False,
