@@ -32,9 +32,17 @@ def request():
     }
 
 
+def execution(receipt):
+    return {
+        "executed_by": "workflow",
+        "execution_result": "success",
+        "canonical_action": receipt.request["canonical_action"],
+    }
+
+
 def sealed(bundles):
     receipt = approve(verify_action(request(), bundles), approver="operator")
-    return seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundles)
+    return seal(receipt, execution(receipt), bundles)
 
 
 def test_authority_and_path_drift_reopen_sealed_parent(stores):
@@ -64,7 +72,7 @@ def test_authority_change_before_consequence_refuses_seal(stores):
     bundle["authority_rules"][0]["allowed_actions"] = []
     bundle_path.write_text(yaml.safe_dump(bundle))
 
-    result = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundles)
+    result = seal(receipt, execution(receipt), bundles)
 
     assert result.status == NEEDS_HUMAN_REVIEW
     assert any("authority changed" in item["finding"] for item in result.findings)
@@ -79,7 +87,7 @@ def test_successful_consequence_consumes_single_use_authority(stores):
     assert receipt.authority["consumed_at"]
     assert receipt.authority["consumed_by_execution_hash"].startswith("sha256:")
     with pytest.raises(ValueError, match="consumed"):
-        seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundles)
+        seal(receipt, execution(receipt), bundles)
 
 
 def test_committed_end_to_end_artifacts_validate():
@@ -110,9 +118,9 @@ def test_store_does_not_duplicate_second_identical_seal(stores):
     bundles, receipts, _ = stores
     first = approve(verify_action(request(), bundles), approver="operator")
     stale = deepcopy(first)
-    receipts.save(seal(first, {"executed_by": "workflow", "execution_result": "success"}, bundles))
+    receipts.save(seal(first, execution(first), bundles))
 
-    second = seal(stale, {"executed_by": "workflow", "execution_result": "success"}, bundles)
+    second = seal(stale, execution(stale), bundles)
     receipts.save(second)
 
     assert len(receipts.all()) == 1
@@ -201,7 +209,7 @@ def test_authority_path_change_before_consequence_refuses_seal(stores):
     bundle["evidence_sources"]["deployment_window"] = {"version": 1, "content": "OPEN"}
     bundle_path.write_text(yaml.safe_dump(bundle, sort_keys=False))
 
-    result = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundles)
+    result = seal(receipt, execution(receipt), bundles)
 
     assert result.status == NEEDS_HUMAN_REVIEW
     assert any("authority path changed" in item["finding"] for item in result.findings)

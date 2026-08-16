@@ -24,7 +24,7 @@ def sealed_receipt(tmp_path):
         "context_refs": ["certification_status"],
     }
     receipt = approve(verify_action(req, bundles), approver="operator")
-    receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundles)
+    receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundles)
     assert receipt.status == SEALED
     ReceiptStore(tmp_path / "receipts").save(receipt)
     return receipt

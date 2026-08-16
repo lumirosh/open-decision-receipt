@@ -46,7 +46,7 @@ def deploy_request():
 
 def sealed_receipt(bundle_store, deploy_request):
     receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
-    return seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundle_store)
+    return seal(receipt, {"executed_by": "workflow", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundle_store)
 
 
 def test_sealed_receipts_enter_tamper_evident_chain(bundle_store, receipt_store, deploy_request):
@@ -99,6 +99,35 @@ def test_resave_does_not_double_append_chain(bundle_store, receipt_store, deploy
     receipt_store.save(receipt)
 
     assert sum(1 for entry in receipt_store.chain._entries() if entry["decision_id"] == receipt.decision_id) == 1
+
+
+def test_action_parameter_mutation_refuses_seal(bundle_store, deploy_request):
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
+    assert receipt.authority["action_hash"] == receipt.request["action_hash"]
+
+    result = seal(receipt, {
+        "executed_by": "workflow",
+        "execution_result": "success",
+        "canonical_action": {
+            "workflow": deploy_request["workflow"],
+            "action_type": deploy_request["action"],
+            "parameters": {"environment": "production", "path": "B"},
+        },
+    }, bundle_store)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert any("action commitment changed" in item["finding"] for item in result.findings)
+
+
+def test_missing_action_commitment_fails_closed(bundle_store, deploy_request):
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
+    receipt.request.pop("action_hash")
+    receipt.authority.pop("action_hash")
+
+    result = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundle_store)
+
+    assert result.status == NEEDS_HUMAN_REVIEW
+    assert any("action commitment" in item["finding"] for item in result.findings)
 
 
 def test_grammar_requires_authority(bundle_store, deploy_request):

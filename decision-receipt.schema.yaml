@@ -18,6 +18,11 @@ request:
   requester_authority: string          # the authority the requester actually holds
   requested_action: string
   requested_at: timestamp
+  canonical_action:                   # exact consequential object
+    workflow: string
+    action_type: string
+    parameters: object
+  action_hash: sha256:hex
 
 check:                                 # TIME OF CHECK
   checked_by: person | model | workflow
@@ -50,7 +55,8 @@ authority:
   approval_method: explicit | policy | delegated | break_glass | none | unknown | null
   approved_at: timestamp
   authority_basis: policy_or_role_reference
-  approval_scope: string               # the exact bounded action approved
+  approval_scope: string               # descriptive compatibility field
+  action_hash: sha256:hex               # exact consequential object approved
   separation_of_duties_ok: true | false
   authorization_use: single_use
   consumed_at: timestamp | null
@@ -73,7 +79,9 @@ execution:                             # TIME OF USE
   executed_at: timestamp
   tool_or_system: string
   credential_used: token_or_session_id # exposes confused-deputy paths (CWE-441)
-  actual_action: string                # compare against approval_scope
+  actual_action: string                # descriptive compatibility field
+  canonical_action: object             # runtime's consequential object
+  action_hash: sha256:hex               # must match approved action_hash
   context_hash_at_execution: hash      # differs from check hash => TOCTOU (CWE-367)
   execution_result: string
 

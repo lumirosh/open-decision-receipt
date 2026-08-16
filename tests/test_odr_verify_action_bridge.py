@@ -59,7 +59,7 @@ def test_cert_drift_preserves_sealed_parent_and_creates_linked_child(bundle_stor
     assert receipt.status == NEEDS_HUMAN_REVIEW
 
     receipt = approve(receipt, approver="operator")
-    receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundle_store)
+    receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundle_store)
     assert receipt.status == SEALED
     assert receipt.replayable
     receipt_store.save(receipt)
@@ -86,7 +86,7 @@ def test_seal_refuses_to_seal_if_basis_changes_between_check_and_use(bundle_stor
     receipt = approve(verify_action(deploy_request, bundle_store), approver="operator")
     revoke_cert(bundle_store)
 
-    receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success"}, bundle_store)
+    receipt = seal(receipt, {"executed_by": "workflow", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundle_store)
 
     assert receipt.status == NEEDS_HUMAN_REVIEW
     assert any("TOCTOU" in finding["finding"] for finding in receipt.findings)
@@ -117,7 +117,7 @@ def test_policy_authorized_containment_seals_then_creates_child_when_intel_is_re
     assert receipt.authority["approval_method"] == "policy"
     assert receipt.boundary["failure_mode"] == "fail_closed"
 
-    receipt = seal(receipt, {"executed_by": "containment_agent_v2", "execution_result": "success"}, bundles)
+    receipt = seal(receipt, {"executed_by": "containment_agent_v2", "execution_result": "success", "canonical_action": receipt.request["canonical_action"]}, bundles)
     assert receipt.status == SEALED
     receipts.save(receipt)
 

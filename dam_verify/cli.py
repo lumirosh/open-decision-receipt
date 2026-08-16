@@ -93,7 +93,7 @@ def main(argv=None):
         _print(r)
     elif args.cmd == "seal":
         r = receipts.load(args.decision_id)
-        r = seal(r, {"executed_by": "workflow", "execution_result": args.result}, bundles)
+        r = seal(r, {"executed_by": "workflow", "execution_result": args.result, "canonical_action": r.request["canonical_action"]}, bundles)
         receipts.save(r)
         _print(r)
     elif args.cmd == "watch":

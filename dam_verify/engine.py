@@ -18,6 +18,7 @@ Core invariants:
 """
 from __future__ import annotations
 
+import copy
 import json
 import uuid
 from datetime import datetime, timezone
@@ -74,6 +75,15 @@ class BundleStore:
                     "content_hash": sha256_of(src.get("content", "")),
                 }
         return found, missing
+
+
+def canonical_action(workflow: str, action: str, params: dict | None = None) -> dict:
+    """Return the exact consequential object shared by request and execution."""
+    return {
+        "workflow": workflow,
+        "action_type": action,
+        "parameters": copy.deepcopy(params or {}),
+    }
 
 
 def context_hash(evidence: dict) -> str:
@@ -217,6 +227,7 @@ class ReceiptStore:
 def verify_action(req: dict, bundles: BundleStore) -> Receipt:
     """The BEFORE tense. Returns a receipt in one of:
     authorized | denied | needs_human_review | unknown."""
+    requested_action = canonical_action(req["workflow"], req["action"], req.get("params"))
     r = Receipt(
         decision_id=f"DR-{now_iso()[:10]}-{uuid.uuid4().hex[:6]}",
         workflow=req["workflow"],
@@ -228,6 +239,8 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
             "requested_action": req["action"],
             "requested_at": now_iso(),
             "params": req.get("params", {}),
+            "canonical_action": requested_action,
+            "action_hash": sha256_of(requested_action),
         },
     )
 
@@ -317,6 +330,7 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         "approved_at": now_iso(),
         "authority_basis": rule.get("basis", "unspecified"),
         "approval_scope": req["action"],
+        "action_hash": r.request["action_hash"],
         "separation_of_duties_ok": True,
         "authorization_use": "single_use",
         "consumed_at": None,
@@ -331,12 +345,15 @@ def approve(r: Receipt, approver: str, scope: str | None = None) -> Receipt:
         raise ValueError(f"cannot approve receipt in status '{r.status}'")
     if r.check.get("missing"):
         raise ValueError(f"cannot approve with missing evidence: {r.check['missing']}")
+    if not r.request.get("action_hash"):
+        raise ValueError("cannot approve without an action commitment")
     r.authority |= {
         "approver": approver,
         "approval_method": "explicit",
         "approved_at": now_iso(),
         "authority_basis": r.request.get("requester_authority", "unspecified"),
         "approval_scope": scope or r.request["requested_action"],
+        "action_hash": r.request["action_hash"],
         "separation_of_duties_ok": approver != r.request["requester"],
         "authorization_use": "single_use",
         "consumed_at": None,
@@ -371,10 +388,18 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
         "context_refs": r.check.get("evidence_refs", []),
     })
 
+    execution_action = execution_record.get("canonical_action")
+    execution_action_hash = sha256_of(execution_action) if isinstance(execution_action, dict) else None
     r.execution = dict(execution_record) | {
         "executed_at": now_iso(),
         "context_hash_at_execution": ctx_now,
+        "action_hash": execution_action_hash,
     }
+
+    if r.authority.get("action_hash") is None or execution_action_hash != r.authority["action_hash"]:
+        r.status = NEEDS_HUMAN_REVIEW
+        r.flag("action commitment changed between approval and execution - sealing refused, re-verification required")
+        return r
 
     if missing or ctx_now != r.check.get("context_hash_at_check"):
         r.status = NEEDS_HUMAN_REVIEW

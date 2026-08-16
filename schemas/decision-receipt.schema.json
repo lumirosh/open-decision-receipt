@@ -95,6 +95,20 @@
             "string",
             "null"
           ]
+        },
+        "canonical_action": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["workflow", "action_type", "parameters"],
+          "properties": {
+            "workflow": {"type": "string", "minLength": 1},
+            "action_type": {"type": "string", "minLength": 1},
+            "parameters": {"type": "object"}
+          }
+        },
+        "action_hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
         }
       }
     },
@@ -317,6 +331,10 @@
             "null"
           ]
         },
+        "action_hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
         "separation_of_duties_ok": {
           "type": [
             "boolean",
@@ -425,6 +443,20 @@
             "string",
             "null"
           ]
+        },
+        "canonical_action": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["workflow", "action_type", "parameters"],
+          "properties": {
+            "workflow": {"type": "string", "minLength": 1},
+            "action_type": {"type": "string", "minLength": 1},
+            "parameters": {"type": "object"}
+          }
+        },
+        "action_hash": {
+          "type": ["string", "null"],
+          "pattern": "^sha256:[a-f0-9]{64}$"
         },
         "context_hash_at_execution": {
           "type": [

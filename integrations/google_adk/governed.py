@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from dam_verify.engine import BundleStore, ReceiptStore, approve, seal, verify_action
+from dam_verify.engine import BundleStore, ReceiptStore, approve, canonical_action, seal, verify_action
 from dam_verify.okf import promote_receipt_bundle
 from dam_verify.receipt import DENIED, ESCALATED, NEEDS_HUMAN_REVIEW, now_iso
 
@@ -123,17 +123,24 @@ def decide_action(
     actions = Path(actions_dir)
     actions.mkdir(parents=True, exist_ok=True)
     artifact_path = actions / f"{decision_id}.json"
+    executed_action = canonical_action(
+        receipt.workflow,
+        receipt.decision_type,
+        receipt.request.get("params"),
+    )
     artifact_path.write_text(json.dumps({
         "decision_id": decision_id,
-        "subject_ref": receipt.request.get("params", {}).get("subject_ref"),
-        "action": receipt.decision_type,
+        "subject_ref": executed_action["parameters"].get("subject_ref"),
+        "canonical_action": executed_action,
         "mode": "synthetic_local_only",
         "external_action_performed": False,
     }, indent=2, sort_keys=True) + "\n")
+    observed_action = json.loads(artifact_path.read_text())["canonical_action"]
     receipt = seal(receipt, {
         "executed_by": "google_adk_reference",
         "tool_or_system": "local_json_artifact",
-        "actual_action": receipt.decision_type,
+        "actual_action": observed_action["action_type"],
+        "canonical_action": observed_action,
         "execution_result": "synthetic_success",
         "external_action_performed": False,
         "artifact_path": str(artifact_path.resolve()),

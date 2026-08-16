@@ -14,7 +14,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from dam_verify.engine import BundleStore, ReceiptStore, approve, seal, verify_action, watch
+from dam_verify.engine import BundleStore, ReceiptStore, approve, canonical_action, seal, verify_action, watch
 from dam_verify.receipt import DENIED, NEEDS_HUMAN_REVIEW, SEALED
 
 
@@ -41,7 +41,13 @@ def main(output: Path) -> None:
         "params": {"environment": "production", "path": "A"},
     }
     refuse_request = dict(allow_request, action="bypass_gate")
-    execution = {"executed_by": "release_workflow", "execution_result": "success"}
+    execution = {
+        "executed_by": "release_workflow",
+        "execution_result": "success",
+        "canonical_action": canonical_action(
+            allow_request["workflow"], allow_request["action"], allow_request["params"]
+        ),
+    }
 
     write_json(output / "allow-request.json", allow_request)
     write_json(output / "refuse-request.json", refuse_request)
