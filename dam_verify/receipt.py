@@ -26,7 +26,7 @@ def now_iso() -> str:
 
 def sha256_of(obj) -> str:
     """Return a full SHA-256 digest for durable integrity evidence."""
-    canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"))
+    canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
 
