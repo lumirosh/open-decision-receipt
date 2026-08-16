@@ -15,12 +15,12 @@
     "authority_hash_at_check": null,
     "authority_snapshot": null
   },
-  "decision_id": "DR-2026-08-14-811e43",
+  "decision_id": "DR-2026-08-16-7cf76f",
   "decision_type": "bypass_gate",
   "execution": {},
   "findings": [
     {
-      "at": "2026-08-14T13:34:55+00:00",
+      "at": "2026-08-16T13:57:21+00:00",
       "finding": "action 'bypass_gate' outside allowed set ['deploy_certified_workflow']"
     }
   ],
@@ -29,12 +29,21 @@
   "recommendation": {},
   "reopen_event_id": null,
   "request": {
+    "action_hash": "sha256:74dfca6ce426de3e0f8ca6c1a9936b12b394cea45692525866d3a8fb1eeca27b",
+    "canonical_action": {
+      "action_type": "bypass_gate",
+      "parameters": {
+        "environment": "production",
+        "path": "A"
+      },
+      "workflow": "cert_gated_deployment"
+    },
     "params": {
       "environment": "production",
       "path": "A"
     },
     "requested_action": "bypass_gate",
-    "requested_at": "2026-08-14T13:34:55+00:00",
+    "requested_at": "2026-08-16T13:57:21+00:00",
     "requester": "release_workflow",
     "requester_authority": "runbook://cert-gated-deployment#v3"
   },

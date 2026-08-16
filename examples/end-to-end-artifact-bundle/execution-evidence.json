@@ -1,4 +1,12 @@
 {
+  "canonical_action": {
+    "action_type": "deploy_certified_workflow",
+    "parameters": {
+      "environment": "production",
+      "path": "A"
+    },
+    "workflow": "cert_gated_deployment"
+  },
   "executed_by": "release_workflow",
   "execution_result": "success"
 }

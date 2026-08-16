@@ -2,19 +2,19 @@
   "claim_boundary": "Demonstrates bounded allow/refuse, immutable sealed-parent preservation, drift detection, append-only ReopenEvent, and linked revalidation child.",
   "profile": "illustrative certification-gated deployment",
   "relationships": {
-    "child_lifecycle": "DR-2026-08-14-8085cd-child-f26324",
-    "refused_attempt": "DR-2026-08-14-811e43",
-    "reopen_event": "RE-5bb9fdabea5d",
-    "sealed_parent": "DR-2026-08-14-8085cd"
+    "child_lifecycle": "DR-2026-08-16-bfe3e1-child-3353ee",
+    "refused_attempt": "DR-2026-08-16-7cf76f",
+    "reopen_event": "RE-8094cc52d44a",
+    "sealed_parent": "DR-2026-08-16-bfe3e1"
   },
   "sha256": {
     "allow-request.json": "7f64f9d27379e990678ffdedc77ae5121c1684b2bc5e873014739e3f29184b6c",
-    "allow-sealed-receipt.json": "405bfecb7cc40c339a6e82668e576e38303ebb388768cb416aee5fa1cd1ded91",
-    "authority-basis.yaml": "1e87e367b151ae767d580db0ceafc9765514a96932a9d938675f196e52d4faa3",
-    "child-revalidation.json": "1d7f619ad841f5d84f53d5aeebb568fb7c7adc337f82b55e4f30d5ead6cccd52",
-    "execution-evidence.json": "3563a3a73e9a043820274cb9cdfc013e8be74dfd990fceafb95b8eaa63d4c443",
-    "refuse-receipt.json": "66b3a47bd87ce0c5f696bdeb0e233b5e24bf6000ccb2587cfea7a59c412a536e",
+    "allow-sealed-receipt.json": "7072d25c6aacd13a23c395386006d8dad2d1450db60a1b0231252246dda434f9",
+    "authority-basis.yaml": "4b06c362e3f88d0f1f4342e76e29880fbcfdbcea9b752bd5e4f4a29f1bc334a9",
+    "child-revalidation.json": "b88ff830a9f166f99370b28c6b5dff042e9fbd2b018bc2e9336ca3592d6c418f",
+    "execution-evidence.json": "5c0f39d41bb9605edab55137c29b5b59221b144c2d07fb36bf53dc6abdbcedd0",
+    "refuse-receipt.json": "df8c948287923718eb81faaa72713536d8a63d5f9df46b255bdb79bbf6f33bcf",
     "refuse-request.json": "de0fd8d049aef5409b76e08319787dcba91ecf4605f1824a8117a1ea1c6477c9",
-    "reopen-event.json": "782e459d461ab8f4648306cd98e893ae63f86714176fe391c089abaa354346e2"
+    "reopen-event.json": "c85c87062133b7bbc4d1955aa67ccf05b9c45634bebf9a892abfa6cef8f20ab6"
   }
 }
