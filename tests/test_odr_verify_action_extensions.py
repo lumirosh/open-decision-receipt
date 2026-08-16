@@ -14,7 +14,7 @@ for module_name in list(sys.modules):
 from dam_verify.cli import replay
 from dam_verify.engine import BundleStore, ReceiptStore, approve, seal, verify_action
 from dam_verify.grammar import compile_action_schema
-from dam_verify.receipt import NEEDS_HUMAN_REVIEW
+from dam_verify.receipt import AUTHORIZED, NEEDS_HUMAN_REVIEW
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "cert_gated_deployment.yaml"
 
@@ -70,6 +70,27 @@ def test_chain_detects_tampering(bundle_store, receipt_store, deploy_request):
 
     ok, broken = receipt_store.chain.verify()
     assert not ok and broken == 1
+
+
+def test_chain_detects_receipt_body_tampering(bundle_store, receipt_store, deploy_request):
+    receipt = sealed_receipt(bundle_store, deploy_request)
+    path = receipt_store.save(receipt)
+    body = json.loads(path.read_text())
+    body["execution"]["execution_result"] = "tampered"
+    path.write_text(json.dumps(body))
+
+    ok, broken = receipt_store.chain.verify()
+
+    assert not ok and broken == 0
+
+
+def test_sealed_receipt_cannot_be_overwritten_as_unsealed(bundle_store, receipt_store, deploy_request):
+    receipt = sealed_receipt(bundle_store, deploy_request)
+    receipt_store.save(receipt)
+    receipt.status = AUTHORIZED
+
+    with pytest.raises(ValueError, match="already sealed"):
+        receipt_store.save(receipt)
 
 
 def test_resave_does_not_double_append_chain(bundle_store, receipt_store, deploy_request):

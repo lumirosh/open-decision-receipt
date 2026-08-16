@@ -48,10 +48,21 @@ class ReceiptChain:
 
     def verify(self) -> tuple[bool, int | None]:
         """Return (ok, first_broken_index)."""
+        from .receipt import Receipt
+
         prev = GENESIS
         for entry in self._entries():
             expected = sha256_of({key: entry[key] for key in ("n", "decision_id", "integrity_hash", "prev")})
-            if entry["prev"] != prev or entry["chained_hash"] != expected:
+            receipt_path = self.path.parent / f"{entry['decision_id']}.json"
+            if not receipt_path.exists():
+                return False, entry["n"]
+            receipt = Receipt(**json.loads(receipt_path.read_text()))
+            if (
+                entry["prev"] != prev
+                or entry["chained_hash"] != expected
+                or receipt.receipt.get("integrity_hash") != entry["integrity_hash"]
+                or receipt.seal_hash() != entry["integrity_hash"]
+            ):
                 return False, entry["n"]
             prev = entry["chained_hash"]
         return True, None

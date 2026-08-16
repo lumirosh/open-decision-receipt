@@ -180,9 +180,9 @@ class ReceiptStore:
 
     def save(self, r: Receipt) -> Path:
         path = self.root / f"{r.decision_id}.json"
-        if path.exists() and r.status == SEALED:
+        if path.exists():
             existing = Receipt(**json.loads(path.read_text()))
-            if existing.status == SEALED and existing.receipt.get("integrity_hash") != r.receipt.get("integrity_hash"):
+            if existing.status == SEALED and existing.to_dict() != r.to_dict():
                 raise ValueError(f"authorization '{r.decision_id}' already sealed")
         path.write_text(json.dumps(r.to_dict(), indent=2))
         if r.status == SEALED and r.receipt.get("integrity_hash") and not self.chain.has(r.decision_id):
@@ -397,9 +397,9 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
     r.authority["consumed_by_execution_hash"] = sha256_of(r.execution)
     r.receipt = {
         "replayable": True,
-        "integrity_hash": r.seal_hash(),
         "sealed_at": now_iso(),
     }
+    r.receipt["integrity_hash"] = r.seal_hash()
     return r
 
 
