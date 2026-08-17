@@ -30,6 +30,15 @@ from .receipt import (
     Receipt, now_iso, sha256_of,
     AUTHORIZED, DENIED, NEEDS_HUMAN_REVIEW, UNKNOWN, SEALED,
 )
+from .conditions import (
+    ObservationsStore,
+    canonical_condition_definitions,
+    compensation_refused,
+    condition_refs,
+    evaluate_conditions,
+    failed_conditions,
+    holding_condition_ids,
+)
 
 
 # ---------------------------------------------------------------- bundle store
@@ -136,7 +145,7 @@ def authority_snapshot(bundle: dict | None, req: dict) -> dict | None:
         rule = _match_rule(bundle, req)
     if rule is None:
         return None
-    return {
+    snapshot = {
         "bundle_version": bundle.get("version"),
         "actors": rule.get("actors", []),
         "risk_classes": rule.get("risk_classes", []),
@@ -147,6 +156,11 @@ def authority_snapshot(bundle: dict | None, req: dict) -> dict | None:
         "expires_at": rule.get("expires_at"),
         "revoked": rule.get("revoked", False),
     }
+    # Preserve byte-for-byte legacy authority hashes when no condition contract exists.
+    if bundle.get("conditions"):
+        snapshot["conditions"] = canonical_condition_definitions(bundle["conditions"])
+        snapshot["compensation"] = copy.deepcopy(rule.get("compensation"))
+    return snapshot
 
 
 def authority_hash(bundle: dict | None, req: dict) -> str | None:
@@ -244,7 +258,12 @@ class ReceiptStore:
 
 # ---------------------------------------------------------------- core verbs
 
-def verify_action(req: dict, bundles: BundleStore) -> Receipt:
+def verify_action(
+    req: dict,
+    bundles: BundleStore,
+    observations: ObservationsStore | None = None,
+    evaluated_at: str | None = None,
+) -> Receipt:
     """The BEFORE tense. Returns a receipt in one of:
     authorized | denied | needs_human_review | unknown."""
     requested_action = canonical_action(req["workflow"], req["action"], req.get("params"))
@@ -317,6 +336,16 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         r.flag(f"action '{req['action']}' outside allowed set {r.boundary['allowed_actions']}")
         return r
 
+    # 3.5 Compensation is refused by default. Default is strict conjunction; a
+    # k_of_n tolerance is honored only when the authority rule itself binds one.
+    # A mere 'approved_by' string never grants compensation.
+    if compensation_refused(
+        req.get("compensation"), rule, bundle.get("conditions") or []
+    ):
+        r.status = DENIED
+        r.flag("compensation refused: no bound k_of_n tolerance in authority rule - default conjunction")
+        return r
+
     # 4. Evidence: attach and freeze check-time context.
     refs = sorted(set(req.get("context_refs", [])) | set(rule.get("required_evidence", [])))
     path = resolved_authority_path(bundle, req | {"context_refs": refs})
@@ -335,6 +364,28 @@ def verify_action(req: dict, bundles: BundleStore) -> Receipt:
         r.check["missing"] = missing
         r.flag(f"missing evidence: {missing}")
         return r
+
+    # 4.5 Conditions (optional, additive): when the bundle binds per-condition
+    # evidence freshness, evaluate against current observation snapshots.
+    # Default conjunction; any non-holding condition pauses for revalidation.
+    if bundle.get("conditions"):
+        cond = evaluate_conditions(
+            bundle["conditions"],
+            observations.observations_for(req["workflow"], condition_refs(bundle["conditions"])) if observations else {},
+            evaluated_at or now_iso(),
+            compensation=rule.get("compensation"),
+            authority_hash=r.check["authority_hash_at_check"],
+        )
+        r.check["conditions"] = cond
+        r.check["failed_conditions"] = failed_conditions(cond)
+        r.check["still_holding"] = holding_condition_ids(cond)
+        if not cond["holds"]:
+            r.status = NEEDS_HUMAN_REVIEW
+            r.check["revalidation_scope"] = sorted(
+                item["condition_id"] for item in r.check["failed_conditions"]
+            )
+            r.flag(f"condition not holding at check ({cond['aggregate']}) - paused for revalidation")
+            return r
 
     # 5. Human gate: default for high-risk. A bundle can pre-authorize only
     # a deliberately bounded policy action by setting requires_human: false.
@@ -372,6 +423,8 @@ def approve(
         raise ValueError(f"cannot approve receipt in status '{r.status}'")
     if r.check.get("missing"):
         raise ValueError(f"cannot approve with missing evidence: {r.check['missing']}")
+    if r.check.get("failed_conditions"):
+        raise ValueError("cannot approve failed conditions directly; scoped revalidation is required")
     if r.authority.get("consumed_at"):
         raise ValueError("cannot approve consumed authority; reconciliation and a new decision are required")
     if not r.request.get("action_hash"):
@@ -405,7 +458,13 @@ def approve(
     return r
 
 
-def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
+def seal(
+    r: Receipt,
+    execution_record: dict,
+    bundles: BundleStore,
+    observations: ObservationsStore | None = None,
+    evaluated_at: str | None = None,
+) -> Receipt:
     """The AFTER tense - but only if the world held still.
     Hash divergence between check and execution = TOCTOU: refuse to seal."""
     if r.authority.get("consumed_at"):
@@ -510,6 +569,33 @@ def seal(r: Receipt, execution_record: dict, bundles: BundleStore) -> Receipt:
         r.status = NEEDS_HUMAN_REVIEW
         r.flag("authority path changed between check and consequence - sealing refused, re-verification required")
         return r
+
+    # Condition re-check at execution (optional, additive): if the workflow
+    # binds conditions, they must still all hold or sealing is refused. Condition
+    # drift between check and use is treated like TOCTOU.
+    if bundle_now and bundle_now.get("conditions"):
+        rules_now = _exact_rules(bundle_now, {
+            "actor": r.request.get("requester"),
+            "risk_class": r.risk_class,
+            "action": r.request.get("requested_action"),
+        })
+        cond_now = evaluate_conditions(
+            bundle_now["conditions"],
+            observations.observations_for(r.workflow, condition_refs(bundle_now["conditions"])) if observations else {},
+            evaluated_at or now_iso(),
+            compensation=(rules_now[0].get("compensation") if len(rules_now) == 1 else None),
+            authority_hash=authority_now,
+        )
+        r.check["conditions_at_execution"] = cond_now
+        if not cond_now["holds"]:
+            r.status = NEEDS_HUMAN_REVIEW
+            r.check["failed_conditions"] = failed_conditions(cond_now)
+            r.check["still_holding"] = holding_condition_ids(cond_now)
+            r.check["revalidation_scope"] = sorted(
+                item["condition_id"] for item in r.check["failed_conditions"]
+            )
+            r.flag(f"condition not holding at execution ({cond_now['aggregate']}) - sealing refused, re-validation required")
+            return r
 
     r.status = SEALED
     r.execution["outcome_state"] = "confirmed"
@@ -617,6 +703,197 @@ def watch(store: ReceiptStore, bundles: BundleStore) -> list[Receipt]:
         store.save(child)
         children.append(child)
     return children
+
+
+def _already_paused(store: ReceiptStore, parent_id: str, current: dict) -> bool:
+    """True when an open (needs_human_review) child already captured this state."""
+    for child in store.all():
+        if child.parent_receipt_id != parent_id or child.status != NEEDS_HUMAN_REVIEW:
+            continue
+        prior = child.check.get("conditions") or {}
+        if prior.get("definition_hash") == current.get("definition_hash") \
+           and prior.get("conditions") == current.get("conditions"):
+            return True
+    return False
+
+
+def check_conditions(
+    store: ReceiptStore,
+    bundles: BundleStore,
+    observations: ObservationsStore | None,
+    evaluated_at: str | None = None,
+) -> list[Receipt]:
+    """Post-seal condition freshness watch.
+
+    For each sealed top-level receipt whose workflow binds conditions, evaluate
+    them against current observation snapshots. When the aggregate is no longer
+    holding (breach or staleness), append a linked child in needs_human_review
+    recording failed_conditions and revalidation_scope. The sealed parent is
+    never mutated.
+    """
+    evaluated_at = evaluated_at or now_iso()
+    children = []
+    for r in store.all():
+        if r.status != SEALED or r.parent_receipt_id:
+            continue  # only watch root sealed receipts
+        previous = r.check.get("conditions")
+        bundle = bundles.resolve(r.workflow)
+        if not previous or not (bundle and bundle.get("conditions")):
+            continue  # legacy receipt without bound conditions - unchanged
+        obs = observations.observations_for(r.workflow, condition_refs(bundle["conditions"])) if observations else {}
+        rules = _exact_rules(bundle, {
+            "actor": r.request.get("requester"),
+            "risk_class": r.risk_class,
+            "action": r.request.get("requested_action"),
+        })
+        current_authority_hash = authority_hash(bundle, {
+            "actor": r.request.get("requester"),
+            "risk_class": r.risk_class,
+            "action": r.request.get("requested_action"),
+        })
+        current = evaluate_conditions(
+            bundle["conditions"], obs, evaluated_at,
+            compensation=(rules[0].get("compensation") if len(rules) == 1 else None),
+            authority_hash=current_authority_hash,
+        )
+        if current["holds"]:
+            continue
+        if _already_paused(store, r.decision_id, current):
+            continue
+        event_id = f"CE-{uuid.uuid4().hex[:12]}"
+        child = Receipt(
+            decision_id=f"{r.decision_id}-reval-{uuid.uuid4().hex[:6]}",
+            workflow=r.workflow,
+            decision_type=r.decision_type,
+            risk_class=r.risk_class,
+            status=NEEDS_HUMAN_REVIEW,
+            parent_receipt_id=r.decision_id,
+            reopen_event_id=event_id,
+            request=dict(r.request),
+        )
+        # Carry the parent's check-time context so a later seal of this child can
+        # confirm the evidence basis still held (TOCTOU) under revalidation.
+        child.check = dict(r.check)
+        child.check["conditions"] = current
+        child.check["failed_conditions"] = failed_conditions(current)
+        child.check["still_holding"] = holding_condition_ids(current)
+        child.check["revalidation_scope"] = sorted(
+            item["condition_id"] for item in child.check["failed_conditions"]
+        )
+        child.flag(f"condition no longer holding ({current['aggregate']}) - paused for scoped revalidation")
+        event = {
+            "event_id": event_id,
+            "event_type": "ConditionCheckEvent",
+            "parent_receipt_id": r.decision_id,
+            "child_decision_id": child.decision_id,
+            "detected_at": now_iso(),
+            "reason": f"condition {current['aggregate']}",
+            "condition_definition_hash": current["definition_hash"],
+            "aggregate": current["aggregate"],
+        }
+        store.save_event(event)
+        store.save(child)
+        children.append(child)
+    return children
+
+
+def revalidate(
+    receipt: Receipt,
+    bundles: BundleStore,
+    observations: ObservationsStore | None,
+    evaluated_at: str | None = None,
+    approver: str | None = None,
+    approver_role: str | None = None,
+    condition_ids: list[str] | None = None,
+) -> Receipt:
+    """Revalidate exactly the failed-condition scope on an immutable-parent child."""
+    if receipt.status != NEEDS_HUMAN_REVIEW:
+        raise ValueError(f"cannot revalidate receipt in status '{receipt.status}'")
+    bundle = bundles.resolve(receipt.workflow)
+    definitions = (bundle or {}).get("conditions")
+    if not definitions:
+        raise ValueError("workflow has no bound conditions to revalidate")
+
+    if receipt.check.get("missing"):
+        receipt.flag("scoped revalidation refused: required evidence is still unresolved")
+        return receipt
+    if receipt.authority.get("consumed_at"):
+        receipt.flag("scoped revalidation refused: consumed authority cannot be reset")
+        return receipt
+    required_scope = sorted(receipt.check.get("revalidation_scope") or [])
+    if not required_scope:
+        receipt.flag("scoped revalidation refused: receipt has no failed-condition scope")
+        return receipt
+    attempted_scope = sorted(condition_ids if condition_ids is not None else required_scope)
+    if attempted_scope != required_scope:
+        receipt.flag("scoped revalidation refused: attempted conditions do not match failed-condition scope")
+        return receipt
+
+    rules = _exact_rules(bundle, {
+        "actor": receipt.request.get("requester"),
+        "risk_class": receipt.risk_class,
+        "action": receipt.request.get("requested_action"),
+    })
+    if len(rules) != 1:
+        receipt.flag("scoped revalidation refused: authority rule is no longer exact")
+        return receipt
+    rule = rules[0]
+    evaluated_at = evaluated_at or now_iso()
+    obs = observations.observations_for(receipt.workflow, condition_refs(definitions)) if observations else {}
+    current_authority_hash = authority_hash(bundle, {
+        "actor": receipt.request.get("requester"),
+        "risk_class": receipt.risk_class,
+        "action": receipt.request.get("requested_action"),
+    })
+    if current_authority_hash != receipt.check.get("authority_hash_at_check"):
+        receipt.flag("scoped revalidation refused: authority contract changed")
+        return receipt
+    current = evaluate_conditions(
+        definitions, obs, evaluated_at,
+        compensation=rule.get("compensation"),
+        authority_hash=current_authority_hash,
+    )
+    receipt.check["conditions"] = current
+    receipt.check["failed_conditions"] = failed_conditions(current)
+    receipt.check["still_holding"] = holding_condition_ids(current)
+    if not current["holds"]:
+        receipt.check["revalidation_scope"] = sorted(
+            item["condition_id"] for item in receipt.check["failed_conditions"]
+        )
+        receipt.flag(f"revalidation not cleared ({current['aggregate']}) - still paused")
+        return receipt
+
+    receipt.check["revalidated_at"] = evaluated_at
+    if rule.get("requires_human", True):
+        if not (approver and approver_role):
+            receipt.flag("human approval still required after condition revalidation")
+            return receipt
+        try:
+            receipt = approve(
+                receipt,
+                approver=approver,
+                bundles=bundles,
+                approver_role=approver_role,
+                scope=",".join(required_scope),
+            )
+        except PermissionError:
+            receipt.flag("scoped revalidation refused: approver lacks authority")
+            return receipt
+    else:
+        receipt.status = AUTHORIZED
+        receipt.authority |= {
+            "approver": "policy",
+            "approval_method": "policy",
+            "approved_at": now_iso(),
+            "authority_basis": f"revalidation:{current['definition_hash'][:16]}",
+            "approval_scope": ",".join(required_scope),
+            "action_hash": receipt.request.get("action_hash"),
+            "authorization_use": "single_use",
+            "consumed_at": None,
+            "consumed_by_execution_hash": None,
+        }
+    receipt.flag(f"scoped revalidation cleared ({current['aggregate']}) - ready to seal via linked child")
+    return receipt
 
 
 def _match_rule(bundle: dict, req: dict) -> dict | None:

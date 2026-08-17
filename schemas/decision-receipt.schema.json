@@ -247,6 +247,58 @@
           "items": {
             "type": "string"
           }
+        },
+        "conditions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["definition_hash", "evaluated_at", "aggregate", "holds", "conditions", "compensation"],
+          "properties": {
+            "definition_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+            "evaluated_at": {"type": "string", "format": "date-time"},
+            "aggregate": {"enum": ["holding", "breached", "stale", "unknown"]},
+            "holds": {"type": "boolean"},
+            "conditions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": ["condition_id", "operator", "state", "observed_value", "expected", "last_validated_at", "max_age_seconds"],
+                "properties": {
+                  "condition_id": {"type": "string", "minLength": 1},
+                  "source_ref": {"type": ["string", "null"]},
+                  "operator": {"type": ["string", "null"]},
+                  "state": {"enum": ["holding", "breached", "stale", "unknown"]},
+                  "observed_value": {},
+                  "expected": {},
+                  "last_validated_at": {"type": ["string", "null"], "format": "date-time"},
+                  "max_age_seconds": {"type": ["integer", "null"], "minimum": 0}
+                }
+              }
+            },
+            "compensation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "valid", "applied", "authority_hash"],
+              "properties": {
+                "mode": {"enum": ["none", "k_of_n"]},
+                "valid": {"type": "boolean"},
+                "applied": {"type": "boolean"},
+                "authority_hash": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"}
+              }
+            }
+          }
+        },
+        "failed_conditions": {
+          "type": "array",
+          "items": {"type": "object"}
+        },
+        "still_holding": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "revalidation_scope": {
+          "type": "array",
+          "items": {"type": "string"}
         }
       }
     },

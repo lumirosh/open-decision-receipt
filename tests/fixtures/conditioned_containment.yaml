@@ -1,0 +1,32 @@
+# Theresa per-condition evidence freshness authority bundle.
+# Condition definitions are immutable and authority-bound. Observation
+# snapshots are separate and mutable (see ObservationsStore). Default
+# conjunction: every condition must hold for the aggregate to hold.
+workflow: conditioned_containment
+version: 1
+authority_rules:
+  - actors: [containment_agent_v2]
+    risk_classes: [high]
+    allowed_actions: [isolate_host]
+    denied_actions: [delete_data, delete_logs]
+    requires_human: false
+    basis: "runbook://theresa-conditioned-containment#v1"
+    required_evidence: [threat_intel_indicator, asset_criticality]
+conditions:
+  - name: threat_indicator_active
+    ref: threat_intel_indicator
+    operator: eq
+    expected_value: "ACTIVE"
+    max_age_seconds: 300
+  - name: host_not_critical
+    ref: asset_criticality
+    operator: eq
+    expected_value: "TIER2"
+    max_age_seconds: 300
+evidence_sources:
+  threat_intel_indicator:
+    version: 1
+    content: "TI-88213 ACTIVE"
+  asset_criticality:
+    version: 1
+    content: "HOST-7734 TIER2"
