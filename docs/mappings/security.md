@@ -2,6 +2,29 @@
 
 A Decision Receipt does not replace security controls. It makes the authority and evidence boundary around a consequential action inspectable.
 
+## Verifier-bound receipt interpretation
+
+A Decision Receipt carries assertions, evidence references, and lifecycle state. Receipt integrity or schema conformance does not by itself establish the authorization, completeness, correctness, or independent truth of every claim it contains. A consequential conclusion requires a claim-appropriate verifier whose result remains bounded to its scope, binding, freshness, evaluation context, dependencies, and explicit non-claims. The relying-party decision remains separate.
+
+```text
+SECURITY CLAIM
+      ↓ carried by
+RECEIPT / TOKEN / RECORD / ATTESTATION
+      ↓ evaluated by
+CLAIM-APPROPRIATE VERIFIER
+      ↓ produces
+BOUNDED ACCEPTED RESULT
+      ↓ consumed under policy by
+RELYING-PARTY DECISION
+```
+
+Two negative cases must remain explicit when integrations begin consuming external verifier results:
+
+- **Signed-receipt overclaim:** valid receipt integrity must not imply that execution was authorized without the relevant verifier result.
+- **Transitive failure laundering:** a raw successful delegation or execution result must not hide a failed, stale, missing, or indeterminate authority dependency. A composed security conclusion must not become stronger than its verified dependencies.
+
+This distinction follows the verifier-facing model in the individual Internet-Draft [Security Principal and Verifier Binding for Agent Communication Protocols](https://datatracker.ietf.org/doc/draft-bu-agentproto-security-principal-binding/) (`draft-bu-agentproto-security-principal-binding-06`, work in progress, intended Informational). It is architectural guidance, not an adopted IETF standard or validation of ODR.
+
 These are weakness-class mappings, not CVE assignments. A CVE identifies a disclosed vulnerability in a specific product or version. The mappings below connect recurring workflow failures to established CWE, OWASP, STRIDE, and security-control concepts.
 
 | Weakness class | Reference | AI workflow expression | Receipt fields |
@@ -69,6 +92,10 @@ Primary references:
 11. Can the decision be replayed?
 12. Where does the workflow fail open?
 13. Is separation of duties preserved?
-14. What receipt proves all of this?
+14. Who verified each consequential claim?
+15. Against what state, binding, freshness condition, and dependencies?
+16. What exactly may the verifier conclude, and what does that result explicitly not prove?
+17. What relying-party policy turns the bounded result into a decision?
+18. What receipt preserves the evidence for these answers?
 
 If a workflow cannot answer these questions, the action may be logged without its authority boundary being reconstructable.
