@@ -1,0 +1,39 @@
+{
+  "hjs_receipt": "1",
+  "profile": "HJS-Core-1",
+  "created_at": 1788033662,
+  "root_event": "sha256:cf84a0b86266c3b2b2083625f294b971f856ad667399d382f492282f0590eefd",
+  "events": [
+    {
+      "event_hash": "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+      "uri": "delegation-event.json"
+    },
+    {
+      "event_hash": "sha256:cf84a0b86266c3b2b2083625f294b971f856ad667399d382f492282f0590eefd",
+      "uri": "verification-event.json"
+    }
+  ],
+  "records": [],
+  "evidence": [
+    {
+      "kind": "policy_result",
+      "digest": "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e",
+      "media_type": "application/json",
+      "uri": "scope-comparison.json"
+    },
+    {
+      "kind": "external_decision_receipt",
+      "digest": "sha256:81858e8045f5ae5874bdc635f984d1e6979e2b46f2a84988dd9be1cc011d1760",
+      "media_type": "application/json",
+      "uri": "decision-receipt.json"
+    }
+  ],
+  "external_refs": [],
+  "claim_boundary": {
+    "jep_signature_validation": "not_performed",
+    "hjs_bundle_validation": "structural_only",
+    "interoperability": "not_claimed",
+    "authorization_validity": "not_determined",
+    "external_execution_truth": "not_determined"
+  }
+}

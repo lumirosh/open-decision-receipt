@@ -1,0 +1,118 @@
+{
+  "decision_id": "DR-JEP-HJS-BOUNDARY-001",
+  "workflow": "customer-record-maintenance",
+  "decision_type": "scope_expansion_request",
+  "risk_class": "high",
+  "status": "needs_human_review",
+  "parent_receipt_id": "DR-JEP-HJS-ACTION-A-001",
+  "reopen_event_id": null,
+  "request": {
+    "requester": "did:example:agent-7",
+    "requester_authority": "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+    "requested_action": "update_customer_record_with_credit_limit",
+    "requested_at": "2026-08-29T20:00:30Z",
+    "canonical_action": {
+      "workflow": "customer-record-maintenance",
+      "action_type": "update_customer_record",
+      "parameters": {
+        "customer_id": "customer-123",
+        "fields": [
+          "mailing_address",
+          "credit_limit"
+        ]
+      }
+    },
+    "action_hash": "sha256:4f62410b5e1da0c6fe99c8c850b520eb56f590040d233e1dc3b4d582cbad4c94"
+  },
+  "check": {
+    "checked_by": "did:example:scope-verifier",
+    "checked_at": "2026-08-29T20:01:00Z",
+    "evidence_seen": {
+      "scope_comparison": {
+        "content_hash": "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e",
+        "verdict": "not_contained",
+        "comparator": "urn:example:scope-containment-comparator",
+        "comparator_version": "0.1-illustrative"
+      }
+    },
+    "evidence_refs": [
+      "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e"
+    ],
+    "assumptions": [],
+    "dissenting_signals": [],
+    "missing": [
+      "authority_for_credit_limit"
+    ]
+  },
+  "recommendation": {
+    "recommended_by": "did:example:scope-verifier",
+    "recommendation": "pause_and_request_new_authority",
+    "rationale": "Candidate Action B is not contained within the delegated scope."
+  },
+  "authority": {
+    "approver": "did:example:change-authority",
+    "approval_method": "delegated",
+    "approved_at": "2026-08-29T20:00:00Z",
+    "authority_basis": "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+    "approval_scope": "mailing_address only",
+    "action_hash": "sha256:2d5c676e96b3c8203ddcb65393546df7ec7e9e0e9e68845e0fd5468542f09101",
+    "separation_of_duties_ok": true
+  },
+  "execution": {
+    "executed_by": "did:example:agent-7",
+    "executed_at": null,
+    "actual_action": null,
+    "canonical_action": {
+      "workflow": "customer-record-maintenance",
+      "action_type": "update_customer_record",
+      "parameters": {
+        "customer_id": "customer-123",
+        "fields": [
+          "mailing_address",
+          "credit_limit"
+        ]
+      }
+    },
+    "action_hash": null,
+    "execution_attempted": false,
+    "outcome_state": "confirmed",
+    "reconciliation_required": false,
+    "execution_result": "blocked_scope_not_contained"
+  },
+  "boundary": {
+    "allowed_actions": [
+      "update mailing_address for customer-123"
+    ],
+    "denied_actions": [
+      "update credit_limit without new authority"
+    ],
+    "failure_mode": "fail_closed",
+    "rollback_path": null
+  },
+  "accountability": {
+    "accountable_owner": "did:example:change-authority",
+    "review_required_by": "did:example:change-authority",
+    "appeal_or_escalation_path": "request a child delegation for Action B"
+  },
+  "receipt": {
+    "external_event_ids": [
+      "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+      "sha256:cf84a0b86266c3b2b2083625f294b971f856ad667399d382f492282f0590eefd"
+    ],
+    "replayable": true,
+    "integrity_hash": null,
+    "sealed_at": "2026-08-29T20:01:01Z"
+  },
+  "partial_effects": {
+    "authorized_action_a": "committed",
+    "candidate_action_b": "not_executed"
+  },
+  "claim_boundary": {
+    "authority_source_legitimacy": false,
+    "identity_authenticity": false,
+    "evidence_truth": false,
+    "external_execution_truth": false,
+    "runtime_enforcement": false,
+    "semantic_containment": "external_report_only"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "jep": "1",
+  "verb": "D",
+  "who": "did:example:change-authority",
+  "when": 1787947200,
+  "what": {
+    "delegatee": "did:example:agent-7",
+    "scope": {
+      "workflow": "customer-record-maintenance",
+      "allowed_action": {
+        "action_type": "update_customer_record",
+        "parameters": {
+          "customer_id": "customer-123",
+          "fields": [
+            "mailing_address"
+          ]
+        }
+      }
+    },
+    "constraints": {
+      "deny_unlisted_fields": true,
+      "require_scope_comparison": true
+    },
+    "expiry": 1787950800,
+    "termination_conditions": [
+      "revoked",
+      "expired",
+      "superseded"
+    ]
+  },
+  "nonce": "f30ebf1c-9a17-4dcc-b4ea-e1d8c24ba101",
+  "aud": "urn:example:customer-record-runtime",
+  "sig": "illustrative-detached-jws-not-a-conformance-vector"
+}

@@ -1,0 +1,50 @@
+{
+  "report_type": "scope_containment_comparison",
+  "comparator": {
+    "id": "urn:example:scope-containment-comparator",
+    "version": "0.1-illustrative"
+  },
+  "evaluated_at": "2026-08-29T20:01:00Z",
+  "inputs": {
+    "delegation_event": "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+    "authorized_scope": {
+      "workflow": "customer-record-maintenance",
+      "allowed_action": {
+        "action_type": "update_customer_record",
+        "parameters": {
+          "customer_id": "customer-123",
+          "fields": [
+            "mailing_address"
+          ]
+        }
+      }
+    },
+    "candidate_action": {
+      "workflow": "customer-record-maintenance",
+      "action_type": "update_customer_record",
+      "parameters": {
+        "customer_id": "customer-123",
+        "fields": [
+          "mailing_address",
+          "credit_limit"
+        ]
+      }
+    },
+    "policy": {
+      "id": "urn:example:exact-field-containment",
+      "version": "1"
+    }
+  },
+  "method": "candidate fields must be a subset of delegated fields",
+  "verdict": "not_contained",
+  "reason": "credit_limit is not present in the delegated field set",
+  "partial_effects": {
+    "authorized_action_a": "committed",
+    "candidate_action_b": "not_executed"
+  },
+  "claim_boundary": {
+    "proves_authority_validity": false,
+    "proves_runtime_enforcement": false,
+    "proves_external_execution": false
+  }
+}

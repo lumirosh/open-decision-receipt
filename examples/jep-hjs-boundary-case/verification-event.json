@@ -1,0 +1,16 @@
+{
+  "jep": "1",
+  "verb": "V",
+  "who": "did:example:scope-verifier",
+  "when": 1788033660,
+  "what": {
+    "scope": "policy_compliance",
+    "subject": "candidate-action-b",
+    "result": "not_contained",
+    "evidence": "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e"
+  },
+  "nonce": "26a14a74-b82b-42ae-b899-7a3059526269",
+  "aud": "urn:example:customer-record-runtime",
+  "ref": "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e",
+  "sig": "illustrative-detached-jws-not-a-conformance-vector"
+}
