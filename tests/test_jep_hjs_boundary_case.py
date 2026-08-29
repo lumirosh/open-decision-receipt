@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import datetime
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -42,6 +43,14 @@ def test_boundary_case_forms_a_non_circular_reference_graph():
     assert [item["digest"] for item in manifest["evidence"]] == [comparison_hash, receipt_hash]
 
 
+def test_delegation_is_live_when_scope_is_compared():
+    delegation = load("delegation-event.json")
+    comparison = load("scope-comparison.json")
+    evaluated_at = int(datetime.fromisoformat(comparison["evaluated_at"].replace("Z", "+00:00")).timestamp())
+
+    assert delegation["when"] <= evaluated_at <= delegation["what"]["expiry"]
+
+
 def test_boundary_case_preserves_the_scope_and_partial_effect_boundaries():
     comparison = load("scope-comparison.json")
     receipt = load("decision-receipt.json")
@@ -54,6 +63,7 @@ def test_boundary_case_preserves_the_scope_and_partial_effect_boundaries():
     assert comparison["partial_effects"]["authorized_action_a"] == "committed"
     assert comparison["partial_effects"]["candidate_action_b"] == "not_executed"
     assert receipt["status"] == "needs_human_review"
+    assert receipt["receipt"]["sealed_at"] is None
     assert receipt["execution"]["execution_attempted"] is False
     assert receipt["execution"]["execution_result"] == "blocked_scope_not_contained"
     assert receipt["execution"]["outcome_state"] == "confirmed"
@@ -70,4 +80,6 @@ def test_boundary_case_receipt_validates_without_claiming_interoperability():
     assert receipt["claim_boundary"]["runtime_enforcement"] is False
     assert receipt["claim_boundary"]["semantic_containment"] == "external_report_only"
     assert manifest["claim_boundary"]["jep_signature_validation"] == "not_performed"
+    assert manifest["claim_boundary"]["hjs_receipt_validation"] == "not_satisfied"
+    assert manifest["claim_boundary"]["manifest_binding_event"] == "absent_by_design"
     assert manifest["claim_boundary"]["interoperability"] == "not_claimed"

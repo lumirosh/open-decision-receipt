@@ -2,7 +2,7 @@
   "jep": "1",
   "verb": "D",
   "who": "did:example:change-authority",
-  "when": 1787947200,
+  "when": 1788033600,
   "what": {
     "delegatee": "did:example:agent-7",
     "scope": {
@@ -21,7 +21,7 @@
       "deny_unlisted_fields": true,
       "require_scope_comparison": true
     },
-    "expiry": 1787950800,
+    "expiry": 1788037200,
     "termination_conditions": [
       "revoked",
       "expired",

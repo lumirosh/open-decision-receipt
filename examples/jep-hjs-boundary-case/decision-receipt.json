@@ -8,7 +8,7 @@
   "reopen_event_id": null,
   "request": {
     "requester": "did:example:agent-7",
-    "requester_authority": "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+    "requester_authority": "sha256:e46c34fea023f01983361f4e40049a4351afe5245b82e64a94c203b6d4e7c817",
     "requested_action": "update_customer_record_with_credit_limit",
     "requested_at": "2026-08-29T20:00:30Z",
     "canonical_action": {
@@ -29,14 +29,14 @@
     "checked_at": "2026-08-29T20:01:00Z",
     "evidence_seen": {
       "scope_comparison": {
-        "content_hash": "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e",
+        "content_hash": "sha256:00bb87ae6309d7c45d2cdd9b5b55d11e04ba11f05c7d4717355934485bfa98a4",
         "verdict": "not_contained",
         "comparator": "urn:example:scope-containment-comparator",
         "comparator_version": "0.1-illustrative"
       }
     },
     "evidence_refs": [
-      "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e"
+      "sha256:00bb87ae6309d7c45d2cdd9b5b55d11e04ba11f05c7d4717355934485bfa98a4"
     ],
     "assumptions": [],
     "dissenting_signals": [],
@@ -53,7 +53,7 @@
     "approver": "did:example:change-authority",
     "approval_method": "delegated",
     "approved_at": "2026-08-29T20:00:00Z",
-    "authority_basis": "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+    "authority_basis": "sha256:e46c34fea023f01983361f4e40049a4351afe5245b82e64a94c203b6d4e7c817",
     "approval_scope": "mailing_address only",
     "action_hash": "sha256:2d5c676e96b3c8203ddcb65393546df7ec7e9e0e9e68845e0fd5468542f09101",
     "separation_of_duties_ok": true
@@ -96,12 +96,12 @@
   },
   "receipt": {
     "external_event_ids": [
-      "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
-      "sha256:cf84a0b86266c3b2b2083625f294b971f856ad667399d382f492282f0590eefd"
+      "sha256:e46c34fea023f01983361f4e40049a4351afe5245b82e64a94c203b6d4e7c817",
+      "sha256:31c18307e8ea93f807f64a00de421ad247b72128ffe41b401b2233e0a4040458"
     ],
     "replayable": true,
     "integrity_hash": null,
-    "sealed_at": "2026-08-29T20:01:01Z"
+    "sealed_at": null
   },
   "partial_effects": {
     "authorized_action_a": "committed",

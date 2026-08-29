@@ -6,7 +6,7 @@
   },
   "evaluated_at": "2026-08-29T20:01:00Z",
   "inputs": {
-    "delegation_event": "sha256:09f505ab99ddcfdafc7143e9a7d67dd029d70aef577a2822f564e847ce535407",
+    "delegation_event": "sha256:e46c34fea023f01983361f4e40049a4351afe5245b82e64a94c203b6d4e7c817",
     "authorized_scope": {
       "workflow": "customer-record-maintenance",
       "allowed_action": {

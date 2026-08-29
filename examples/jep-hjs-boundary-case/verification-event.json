@@ -7,10 +7,10 @@
     "scope": "policy_compliance",
     "subject": "candidate-action-b",
     "result": "not_contained",
-    "evidence": "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e"
+    "evidence": "sha256:00bb87ae6309d7c45d2cdd9b5b55d11e04ba11f05c7d4717355934485bfa98a4"
   },
   "nonce": "26a14a74-b82b-42ae-b899-7a3059526269",
   "aud": "urn:example:customer-record-runtime",
-  "ref": "sha256:2beffc68252546364295854c0f8ede883e53ebb53449787a67e13689fc23be1e",
+  "ref": "sha256:00bb87ae6309d7c45d2cdd9b5b55d11e04ba11f05c7d4717355934485bfa98a4",
   "sig": "illustrative-detached-jws-not-a-conformance-vector"
 }
