@@ -17,7 +17,7 @@ cmd dam-verify --receipts-dir "$RECEIPTS" verify examples/verify-action-deploy.j
 
 say "02 — Human signs scoped authority"
 ID=$(ls "$RECEIPTS" | head -1 | sed 's/\.json//')
-cmd dam-verify --receipts-dir "$RECEIPTS" approve "$ID" --approver operator
+cmd dam-verify --receipts-dir "$RECEIPTS" approve "$ID" --approver operator --approver-role change_authority
 
 say "03 — Seal (check-time equals use-time)"
 cmd dam-verify --receipts-dir "$RECEIPTS" seal "$ID"
