@@ -69,8 +69,6 @@ Tests 4 and 8 rely on exact rule checks. ODR does not decide whether one action 
 
 ## Feed trust
 
-<!-- credit: pending -->
-
 - *Silence isn't evidence: the gate asks at execution.*
 - *One witness can stop a payment; it takes all of them to release it.*
 - *Three feeds from one upstream are one witness wearing three badges.* Independence is **assumed** here; in a real Review it is a finding, not a given.
