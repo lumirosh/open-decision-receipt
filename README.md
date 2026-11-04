@@ -38,7 +38,7 @@ The $9,800 is part of the committed $42,000, not an additional payment.
 
 **This is a simulation, not a banking integration.** Data, identities, permissions, clock, and gate are synthetic. ODR does not move money or stop actions by itself.
 
-Run the acceptance matrix (10 tests, 12 scenarios), export its evidence, or run the tests:
+Run the acceptance matrix (11 tests, 13 scenarios), export its evidence, or run the tests:
 
 ```bash
 python scripts/ap-payment-run-demo.py --suite
@@ -46,7 +46,7 @@ python scripts/ap-payment-run-demo.py --suite --out ./ap-demo-evidence
 python -m pytest -q
 ```
 
-The matrix covers valid payments, changed bank details, fraud alerts, out-of-role actions, revoked approvers, unavailable feeds, stale checks, excess credential privileges, and feed trust (frozen, silenced and false-alarm sources). Its 300-second credential cache and witness independence are assumptions, not measured IAM latency or verified source independence.
+The matrix covers valid payments, changed bank details, fraud alerts, out-of-role actions, revoked approvers, unavailable feeds, stale checks, excess credential privileges, feed trust (frozen, silenced and false-alarm sources), and blast radius. Its 300-second credential cache and witness independence are assumptions, not measured IAM latency or verified source independence. The cap is a synthetic, single-run gate rule, not an ODR engine guarantee.
 
 ## What the receipt preserves
 

@@ -3,6 +3,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "ap-payment-run-demo.py"
 
@@ -42,7 +44,7 @@ def test_ap_payment_run_eight_test_suite(tmp_path, capsys):
     assert demo.main(["--suite", "--out", str(tmp_path)]) == 0
     capsys.readouterr()
     tests = {t["test"]: t for t in json.loads((tmp_path / "suite.json").read_text())}
-    assert sorted(tests) == list(range(1, 11))
+    assert sorted(tests) == list(range(1, 12))
 
     assert len(tests[1]["counts"]["sealed"]) == 12
     assert tests[1]["first_hold"] is None
@@ -173,6 +175,56 @@ def test_witness_bundle_requires_every_source_without_compensation():
         state = "unknown" if mode == "down" else "stale"
         assert hold["hold_reasons"] == [f"fraud-alert-clear-bank ({state})"]
         assert hold["seal_if_bypassed"] == "needs_human_review"
+
+
+def test_blast_radius_caps_the_fooled_gate(capsys):
+    demo = load_demo()
+    suite = demo.run_suite()
+    capped = next((t for t in suite if t["test"] == 11), None)
+    assert capped is not None
+    hold = capped["first_hold"]
+    assert hold["invoice"] == "INV-007"
+    assert hold["hold_reasons"] == ["blast-radius cap"]
+    assert hold["receipt_status"] == "authorized"
+    assert hold["seal_if_bypassed"] == "sealed"  # cap belongs to the gate, not the ODR engine
+    assert capped["exposure_usd"]["without_cap"] > capped["exposure_usd"]["with_cap"] == 9_800
+    sealed = [r for r in capped["results"] if r["receipt_status"] == "sealed"]
+    from datetime import timedelta
+    for end in (demo.SimClock._parse(demo.at(r["time"])) for r in sealed):
+        start = end - timedelta(minutes=capped["run_cap"]["window_minutes"])
+        assert sum(r["amount"] for r in sealed
+                   if start < demo.SimClock._parse(demo.at(r["time"])) <= end) <= capped["run_cap"]["usd"]
+    demo.print_suite([capped])
+    output = capsys.readouterr().out
+    assert "without cap" in output and "with cap" in output
+    assert "cap is a gate-only rule" in output
+
+
+def test_cap_is_rolling_all_payee_and_allows_exact_limit(monkeypatch):
+    demo = load_demo()
+    monkeypatch.setattr(demo, "INVOICES", [
+        ("CAP-1", "VENDOR-A", 6_000, "09:02"),
+        ("CAP-2", "VENDOR-B", 4_000, "09:04"),
+        ("CAP-3", "VENDOR-X", 6_000, "09:12"),
+        ("CAP-4", "VENDOR-C", 4_000, "09:14"),
+        ("CAP-5", "VENDOR-X", 1, "09:15"),
+    ])
+    run = demo.simulate([], run_cap={"usd": 10_000, "window_minutes": 10})
+    assert demo.counts(run)["sealed"] == ["CAP-1", "CAP-2", "CAP-3", "CAP-4"]
+    assert demo.first_hold(run)["invoice"] == "CAP-5"
+    assert demo.first_hold(run)["hold_reasons"] == ["blast-radius cap"]
+
+
+@pytest.mark.parametrize("cap", [
+    {}, {"usd": -1, "window_minutes": 30}, {"usd": True, "window_minutes": 30},
+    {"usd": 10_000, "window_minutes": 0}, {"usd": 10_000, "window_minutes": -1},
+    {"usd": 10_000, "window_minutes": False}, {"usd": 10_000.0, "window_minutes": 30},
+    {"usd": "10000", "window_minutes": 30}, {"usd": 10_000, "window_minutes": 30, "typo": 1},
+])
+def test_invalid_cap_is_rejected(cap):
+    demo = load_demo()
+    with pytest.raises(ValueError, match="run_cap"):
+        demo.simulate([], run_cap=cap)
 
 
 def test_engine_clock_restored_after_simulation():

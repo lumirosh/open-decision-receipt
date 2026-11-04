@@ -11,6 +11,7 @@ Default run (vertical slice):
   4 authority hop       5 approver revoked         6 fraud feed unreachable
   7 stale verification  8 declared vs effective rights
   9 frozen feed (a/b)   10 distributed witnesses (a/b)
+  11 blast-radius cap even when the fraud gate is fooled
 
 Everything is synthetic: invoices, vendors, the IAM inventory, the token cache, the clock and the
 execution gate. The gate stands in for a real runtime enforcement point. ODR supplies
@@ -288,7 +289,8 @@ def payment_request(invoice: tuple, vendor_master: dict) -> dict:
     }
 
 
-def gate_check(world: World, receipt, instruction: dict, when: str) -> list[str]:
+def gate_check(world: World, receipt, instruction: dict, when: str, *,
+               run_cap: dict | None = None, results: list[dict] | tuple[dict, ...] = ()) -> list[str]:
     """Synthetic pre-commit gate. Consumes ODR evidence; returns the reasons to hold.
 
     Everything that would make seal() refuse must be checked here first: a refused seal
@@ -312,19 +314,35 @@ def gate_check(world: World, receipt, instruction: dict, when: str) -> list[str]
     )
     if not conditions["holds"]:
         reasons.extend(f"{c['condition_id']} ({c['state']})" for c in failed_conditions(conditions))
+    if run_cap is not None:
+        end = SimClock._parse(at(when))
+        start = end - timedelta(minutes=run_cap["window_minutes"])
+        # ponytail: scan this single-process synthetic run; production needs an atomic shared budget.
+        spent = sum(r["amount"] for r in results if r["receipt_status"] == SEALED
+                    and start < SimClock._parse(at(r["time"])) <= end)
+        if spent + instruction["parameters"]["amount_usd"] > run_cap["usd"]:
+            reasons.append("blast-radius cap")
     return reasons
 
 
 def simulate(events: list[Event], *, verbose: bool = False, initial: Callable[[World], None] | None = None,
-             approval_ttl_seconds: int = APPROVAL_TTL_SECONDS, pull_at_execution: bool = False) -> dict:
+             approval_ttl_seconds: int = APPROVAL_TTL_SECONDS, pull_at_execution: bool = False,
+             run_cap: dict | None = None) -> dict:
+    if run_cap is not None and (
+        not isinstance(run_cap, dict) or set(run_cap) != {"usd", "window_minutes"}
+        or any(type(run_cap[k]) is not int for k in ("usd", "window_minutes"))
+        or run_cap["usd"] < 0 or run_cap["window_minutes"] <= 0
+    ):
+        raise ValueError("run_cap requires nonnegative integer usd and positive integer window_minutes")
     clock = SimClock(at(APPROVED_AT))
     with tempfile.TemporaryDirectory(prefix="odr-ap-") as tmp, simulated_clock(clock):
-        return _simulate(Path(tmp), clock, events, verbose, initial, approval_ttl_seconds, pull_at_execution)
+        return _simulate(Path(tmp), clock, events, verbose, initial, approval_ttl_seconds,
+                         pull_at_execution, run_cap)
 
 
 def _simulate(tmp: Path, clock: SimClock, events: list[Event], verbose: bool,
               initial: Callable[[World], None] | None, approval_ttl_seconds: int,
-              pull_at_execution: bool) -> dict:
+              pull_at_execution: bool, run_cap: dict | None) -> dict:
     world = World(tmp)
     if initial:
         initial(world)
@@ -376,7 +394,7 @@ def _simulate(tmp: Path, clock: SimClock, events: list[Event], verbose: bool,
         instruction = canonical_action(WORKFLOW, "pay_invoice", payment_params(invoice, world.vendor_master))
         execution = {"executed_by": "payment_agent", "execution_result": "success",
                      "canonical_action": instruction}
-        reasons = gate_check(world, receipt, instruction, when)
+        reasons = gate_check(world, receipt, instruction, when, run_cap=run_cap, results=rows)
         if not reasons:
             sealed = seal(receipt, execution, bundles, observations, evaluated_at=at(when))
             rows.append(row | {"gate": "PASS", "receipt_status": sealed.status, "receipt": sealed.to_dict()})
@@ -384,16 +402,17 @@ def _simulate(tmp: Path, clock: SimClock, events: list[Event], verbose: bool,
                 print(f"{when:<7}{inv_id:<10}{vendor:<11}{money(amount):>10}   {'PASS':<6}{sealed.status.upper()}")
             continue
 
-        # Proof of the receipt layer: had an executor ignored the gate, ODR would refuse to seal.
+        # Try bypassing the gate on a copy. Gate-only rules such as the cap are not checked by ODR.
         bypass = seal(copy.deepcopy(receipt), execution, bundles, observations, evaluated_at=at(when))
         rows.append(row | {"gate": "HOLD", "receipt_status": receipt.status, "hold_reasons": reasons,
                            "seal_if_bypassed": bypass.status,
-                           "seal_finding": bypass.findings[-1]["finding"] if bypass.findings else None})
+                           "seal_finding": (bypass.findings[-1]["finding"]
+                                            if bypass.status != SEALED and bypass.findings else None)})
         if verbose:
             print(f"{when:<7}{inv_id:<10}{vendor:<11}{money(amount):>10}   {'HOLD':<6}not executed; approval unconsumed")
             print(f"{'':<9}gate: {'; '.join(reasons)}")
-            print(f"{'':<9}if the gate were bypassed, ODR seal -> {bypass.status.upper()}: "
-                  f"{bypass.findings[-1]['finding']}")
+            finding = rows[-1]["seal_finding"] or "cap is a gate-only rule"
+            print(f"{'':<9}if the gate were bypassed, ODR seal -> {bypass.status.upper()}: {finding}")
         halted = True
     return {"events": applied, "results": rows, "revoked_at": world.revoked_at}
 
@@ -595,8 +614,8 @@ def feed_trust_bundle(*, witnesses: bool = False) -> dict:
 def run_suite() -> list[dict]:
     tests = []
 
-    def run_test(number, title, events, initial=None, extra=None, *, case=None, pull=False):
-        run = simulate(events, initial=initial, pull_at_execution=pull)
+    def run_test(number, title, events, initial=None, extra=None, *, case=None, pull=False, cap=None):
+        run = simulate(events, initial=initial, pull_at_execution=pull, run_cap=cap)
         result = {"test": number, "title": title, "events": run["events"], "counts": counts(run),
                   "first_hold": first_hold(run), "results": run["results"]}
         if case:
@@ -680,6 +699,16 @@ def run_suite() -> list[dict]:
              [("09:15", "PSP plants a false alarm on VENDOR-B", plant_alarm)],
              initial=witness_gate, case="b", pull=True,
              extra=lambda run: {"outcome": "delay, not payment"})
+    cap = {"usd": 50_000, "window_minutes": 30}
+    uncapped = next(t for t in tests if t["test"] == 9 and t["case"] == "a")
+
+    def vendor_exposure(run):
+        return sum(r["amount"] for r in run["results"]
+                   if r["gate"] == "PASS" and r["receipt_status"] == SEALED and r["payee"] == ALERTED_VENDOR)
+
+    run_test(11, "Fooled fraud gate with a rolling all-payee blast-radius cap", frozen_event, cap=cap,
+             extra=lambda run: {"run_cap": cap, "exposure_usd": {
+                 "without_cap": vendor_exposure(uncapped), "with_cap": vendor_exposure(run)}})
     return sorted(tests, key=lambda t: (t["test"], t.get("case", "")))
 
 
@@ -699,12 +728,18 @@ def print_suite(tests: list[dict]) -> None:
             hold = t["first_hold"]
             if hold:
                 print(f"  gate      HOLD at {hold['invoice']} {hold['time']}: {'; '.join(hold['hold_reasons'])}")
-                print(f"  ODR       seal if bypassed -> {hold['seal_if_bypassed'].upper()}: {hold['seal_finding']}")
+                finding = hold["seal_finding"] or "cap is a gate-only rule"
+                print(f"  ODR       seal if bypassed -> {hold['seal_if_bypassed'].upper()}: {finding}")
             else:
                 print("  gate      all PASS")
             c = t["counts"]
             print(f"  run       {len(c['sealed'])} sealed ({money(amount_of(c['sealed']))}) | "
                   f"{len(c['held'])} held | {len(c['queued'])} queued")
+        if "run_cap" in t:
+            cap, exposure = t["run_cap"], t["exposure_usd"]
+            print(f"  cap       {money(cap['usd'])} across all payees per rolling {cap['window_minutes']} minutes")
+            print(f"  exposure  total paid to {ALERTED_VENDOR}: without cap {money(exposure['without_cap'])}; "
+                  f"with cap {money(exposure['with_cap'])} (includes pre-alert payments)")
         if "revocation" in t:
             r = t["revocation"]
             print(f"  latency   decision layer: {len(r['decision_layer_actions_accepted_after'])} actions accepted "
@@ -724,7 +759,8 @@ def print_suite(tests: list[dict]) -> None:
     for line_text in BOUNDARY_TEXT:
         print(line_text)
     print("Test 5's credential layer uses an assumed 300s token cache, not a measurement of any real IAM system.")
-    print("Feed sources and modes are synthetic; witness independence is assumed, not established.")
+    print("Feed sources, modes and cap are synthetic; witness independence is assumed, not established.")
+    print("The cap covers this single-process run, not other runs, concurrent workers or bypass routes.")
     print("One witness can stop a payment; it takes all of them to release it.")
     rule("=")
 
@@ -734,7 +770,7 @@ def print_suite(tests: list[dict]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--suite", action="store_true", help="run all acceptance scenarios, including feed trust")
+    parser.add_argument("--suite", action="store_true", help="run all acceptance scenarios, including feed trust and blast radius")
     parser.add_argument("--out", type=Path, help="directory to write JSON evidence")
     args = parser.parse_args(argv)
 
