@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AP payment run demo on the ODR reference engine: vertical slice and 8-test suite.
+"""AP payment run demo on the ODR reference engine: vertical slice and acceptance suite.
 
 Default run (vertical slice):
   Scene 1  Declared roles vs effective credential (authority conformance vs effective privilege)
@@ -10,6 +10,7 @@ Default run (vertical slice):
   1 baseline            2 bank details changed     3 fraud alert mid-run
   4 authority hop       5 approver revoked         6 fraud feed unreachable
   7 stale verification  8 declared vs effective rights
+  9 frozen feed (a/b)   10 distributed witnesses (a/b)
 
 Everything is synthetic: invoices, vendors, the IAM inventory, the token cache, the clock and the
 execution gate. The gate stands in for a real runtime enforcement point. ODR supplies
@@ -17,7 +18,7 @@ decision evidence and verdicts; it does not move money and does not stop anythin
 
 Usage:
     python3 scripts/ap-payment-run-demo.py                 # vertical slice
-    python3 scripts/ap-payment-run-demo.py --suite         # all eight tests
+    python3 scripts/ap-payment-run-demo.py --suite         # all acceptance scenarios
     python3 scripts/ap-payment-run-demo.py --suite --out DIR   # also write JSON evidence
 """
 from __future__ import annotations
@@ -40,7 +41,9 @@ sys.path.insert(0, str(ROOT))
 
 import dam_verify.engine as engine_module  # noqa: E402
 import dam_verify.receipt as receipt_module  # noqa: E402
-from dam_verify.conditions import ObservationsStore, evaluate_conditions, failed_conditions  # noqa: E402
+from dam_verify.conditions import (  # noqa: E402
+    ObservationsStore, condition_refs, evaluate_conditions, failed_conditions,
+)
 from dam_verify.engine import (  # noqa: E402
     BundleStore, approve, approver_authority_snapshot, canonical_action, seal, verify_action,
 )
@@ -148,9 +151,6 @@ BASE_BUNDLE = {
     },
 }
 
-CONDITION_REFS = ["beneficiary_check", "fraud_alerts"]
-
-
 def at(hhmm: str, day: str = DAY) -> str:
     return f"{day}T{hhmm}:00Z"
 
@@ -212,12 +212,48 @@ def simulated_clock(clock: SimClock):
 
 
 @dataclass
+class Source:
+    """Synthetic upstream truth, separate from the answer supplied to the gate."""
+
+    truth: str
+    mode: str = "live"
+    last_answer: dict | None = None
+    false_alarm_vendor: str = "VENDOR-B"
+
+    def read(self, when: str) -> dict | None:
+        if self.mode == "down":
+            return None
+        if self.mode == "frozen":
+            return copy.deepcopy(self.last_answer)
+        if self.mode not in {"live", "silenced", "false_alarm"}:
+            raise ValueError(f"unknown synthetic source mode: {self.mode}")
+        value = ("none" if self.mode == "silenced" else
+                 self.false_alarm_vendor if self.mode == "false_alarm" else self.truth)
+        self.last_answer = {"observed_value": value, "last_validated_at": when}
+        return dict(self.last_answer)
+
+
+@dataclass
 class World:
     root: Path
     bundle: dict = field(default_factory=lambda: copy.deepcopy(BASE_BUNDLE))
     observations: dict = field(default_factory=base_observations)
     vendor_master: dict = field(default_factory=lambda: dict(VENDOR_MASTER))
     revoked_at: str | None = None
+    sources: dict[str, Source] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.sources = {ref: Source(obs["observed_value"], last_answer=dict(obs))
+                        for ref, obs in self.observations.items()} | self.sources
+
+    def pull(self, when: str) -> None:
+        for ref in condition_refs(self.bundle["conditions"]):
+            source = self.sources.get(ref)
+            answer = source.read(when) if source else None
+            if answer is None:
+                self.observations.pop(ref, None)
+            else:
+                self.observations[ref] = answer
 
     def bundles(self) -> BundleStore:
         path = self.root / "bundles"
@@ -271,7 +307,7 @@ def gate_check(world: World, receipt, instruction: dict, when: str) -> list[str]
         reasons.append("payment instruction differs from the approved action")
     conditions = evaluate_conditions(
         world.bundle["conditions"],
-        world.observation_store().observations_for(WORKFLOW, CONDITION_REFS),
+        world.observation_store().observations_for(WORKFLOW, condition_refs(world.bundle["conditions"])),
         at(when),
     )
     if not conditions["holds"]:
@@ -280,17 +316,20 @@ def gate_check(world: World, receipt, instruction: dict, when: str) -> list[str]
 
 
 def simulate(events: list[Event], *, verbose: bool = False, initial: Callable[[World], None] | None = None,
-             approval_ttl_seconds: int = APPROVAL_TTL_SECONDS) -> dict:
+             approval_ttl_seconds: int = APPROVAL_TTL_SECONDS, pull_at_execution: bool = False) -> dict:
     clock = SimClock(at(APPROVED_AT))
     with tempfile.TemporaryDirectory(prefix="odr-ap-") as tmp, simulated_clock(clock):
-        return _simulate(Path(tmp), clock, events, verbose, initial, approval_ttl_seconds)
+        return _simulate(Path(tmp), clock, events, verbose, initial, approval_ttl_seconds, pull_at_execution)
 
 
 def _simulate(tmp: Path, clock: SimClock, events: list[Event], verbose: bool,
-              initial: Callable[[World], None] | None, approval_ttl_seconds: int) -> dict:
+              initial: Callable[[World], None] | None, approval_ttl_seconds: int,
+              pull_at_execution: bool) -> dict:
     world = World(tmp)
     if initial:
         initial(world)
+    if pull_at_execution:
+        world.pull(at(APPROVED_AT))
 
     bundles = world.bundles()
     observations = world.observation_store()
@@ -306,7 +345,7 @@ def _simulate(tmp: Path, clock: SimClock, events: list[Event], verbose: bool,
     total = sum(inv[2] for inv in INVOICES)
     if verbose:
         print(f"{APPROVED_AT}  {CONTROLLER} approves {len(INVOICES)} invoices, {money(total)} "
-              f"(conditions holding: fraud-alert-clear, beneficiaries-verified)")
+              f"(conditions holding: {', '.join(c['condition_id'] for c in world.bundle['conditions'])})")
         print()
         print(f"{'time':<7}{'invoice':<10}{'payee':<11}{'amount':>10}   {'gate':<6}{'receipt'}")
         rule()
@@ -330,6 +369,8 @@ def _simulate(tmp: Path, clock: SimClock, events: list[Event], verbose: bool,
                 print(f"{when:<7}{inv_id:<10}{vendor:<11}{money(amount):>10}   {'-':<6}not attempted (run paused)")
             continue
 
+        if pull_at_execution:
+            world.pull(at(when))
         bundles = world.bundles()
         observations = world.observation_store()
         instruction = canonical_action(WORKFLOW, "pay_invoice", payment_params(invoice, world.vendor_master))
@@ -536,13 +577,30 @@ def first_hold(run: dict) -> dict | None:
     return next((r for r in run["results"] if r["gate"] == "HOLD"), None)
 
 
+def feed_trust_bundle(*, witnesses: bool = False) -> dict:
+    """Bind freshness and independent source references before approval, never mid-run."""
+    bundle = copy.deepcopy(BASE_BUNDLE)
+    fraud = bundle["conditions"].pop(0)
+    fraud["max_age_seconds"] = 60
+    checks = [fraud]
+    if witnesses:
+        checks = [fraud | {"condition_id": f"fraud-alert-clear-{name}",
+                           "source_ref": f"fraud_alerts_{name}"} for name in ("bank", "psp", "siem")]
+    bundle["conditions"] = checks + bundle["conditions"]
+    assert "compensation" not in bundle
+    assert all("compensation" not in rule for rule in bundle["authority_rules"])
+    return bundle
+
+
 def run_suite() -> list[dict]:
     tests = []
 
-    def run_test(number, title, events, initial=None, extra=None):
-        run = simulate(events, initial=initial)
+    def run_test(number, title, events, initial=None, extra=None, *, case=None, pull=False):
+        run = simulate(events, initial=initial, pull_at_execution=pull)
         result = {"test": number, "title": title, "events": run["events"], "counts": counts(run),
                   "first_hold": first_hold(run), "results": run["results"]}
+        if case:
+            result["case"] = case
         if extra:
             result |= extra(run)
         tests.append(result)
@@ -589,16 +647,52 @@ def run_suite() -> list[dict]:
                   "verdict": a_vs_c["conformance_receipt"]["status"],
                   "distinct_credentials": a_vs_c["distinct_credentials"],
                   "excess": {f["agent"]: f["excess"] for f in a_vs_c["findings"]}})
-    return sorted(tests, key=lambda t: t["test"])
+    def freeze_feed(world):
+        source = world.sources["fraud_alerts"]
+        source.truth, source.mode = ALERTED_VENDOR, "frozen"
+
+    frozen_event = [("09:15", "True alert on VENDOR-X; fraud source freezes its last answer", freeze_feed)]
+
+    def asking_gate(world):
+        world.bundle = feed_trust_bundle()
+
+    def witness_gate(world):
+        world.bundle = feed_trust_bundle(witnesses=True)
+        for name in ("bank", "psp", "siem"):
+            world.sources[f"fraud_alerts_{name}"] = Source("none")
+
+    def silence_bank(world):
+        for name in ("bank", "psp", "siem"):
+            world.sources[f"fraud_alerts_{name}"].truth = ALERTED_VENDOR
+        world.sources["fraud_alerts_bank"].mode = "silenced"
+
+    def plant_alarm(world):
+        world.sources["fraud_alerts_psp"].mode = "false_alarm"
+
+    run_test(9, "Frozen feed: lazy gate believes cached silence", frozen_event,
+             case="a", extra=lambda run: {"outcome": "EXPOSED"})
+    run_test(9, "Frozen feed: asking gate requires a fresh answer", frozen_event,
+             initial=asking_gate, case="b", pull=True)
+    run_test(10, "Silenced bank: the other witnesses still report the alert",
+             [("09:15", "True alert on VENDOR-X; bank witness silenced", silence_bank)],
+             initial=witness_gate, case="a", pull=True)
+    run_test(10, "Planted false alarm on VENDOR-B: no real alert",
+             [("09:15", "PSP plants a false alarm on VENDOR-B", plant_alarm)],
+             initial=witness_gate, case="b", pull=True,
+             extra=lambda run: {"outcome": "delay, not payment"})
+    return sorted(tests, key=lambda t: (t["test"], t.get("case", "")))
 
 
 def print_suite(tests: list[dict]) -> None:
     rule("=")
-    print(f"AP PAYMENT RUN  8-TEST ACCEPTANCE SUITE   (approved {APPROVED_AT} by {CONTROLLER}, "
+    print(f"AP PAYMENT RUN  {len({t['test'] for t in tests})}-TEST ACCEPTANCE SUITE "
+          f"({len(tests)} scenarios)   (approved {APPROVED_AT} by {CONTROLLER}, "
           f"{len(INVOICES)} invoices)")
     rule("=")
     for t in tests:
-        print(f"TEST {t['test']}  {t['title']}")
+        print(f"TEST {t['test']}{t.get('case', '')}  {t['title']}")
+        if "outcome" in t:
+            print(f"  outcome   {t['outcome']}")
         for ev in t.get("events", []):
             print(f"  event     {ev['time']}  {ev['event']}")
         if "counts" in t:
@@ -630,6 +724,8 @@ def print_suite(tests: list[dict]) -> None:
     for line_text in BOUNDARY_TEXT:
         print(line_text)
     print("Test 5's credential layer uses an assumed 300s token cache, not a measurement of any real IAM system.")
+    print("Feed sources and modes are synthetic; witness independence is assumed, not established.")
+    print("One witness can stop a payment; it takes all of them to release it.")
     rule("=")
 
 
@@ -638,7 +734,7 @@ def print_suite(tests: list[dict]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--suite", action="store_true", help="run all eight acceptance tests")
+    parser.add_argument("--suite", action="store_true", help="run all acceptance scenarios, including feed trust")
     parser.add_argument("--out", type=Path, help="directory to write JSON evidence")
     args = parser.parse_args(argv)
 

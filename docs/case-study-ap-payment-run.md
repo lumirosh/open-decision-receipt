@@ -8,7 +8,7 @@ This is a time-of-check to time-of-use (TOCTOU) problem expressed through busine
 
 ```bash
 python3 scripts/ap-payment-run-demo.py            # vertical slice: three scenes
-python3 scripts/ap-payment-run-demo.py --suite    # eight-test acceptance suite
+python3 scripts/ap-payment-run-demo.py --suite    # ten tests, twelve scenarios
 python3 scripts/ap-payment-run-demo.py --suite --out evidence/   # also write JSON evidence
 ```
 
@@ -45,7 +45,7 @@ The demo runs on one simulated clock. The reference engine normally reads the wa
 2. **The run.** Twelve invoices approved at 09:00. INV-001 to INV-006 pass the gate and seal. A fraud alert on VENDOR-X arrives at 09:15. INV-007 reaches the gate at 09:20 and is held; its approval is never consumed. Had an executor bypassed the gate, ODR would have refused to seal.
 3. **Reconciliation.** USD 42,000 committed, 18,500 held, 34,400 queued. USD 9,800 had already gone to VENDOR-X at 09:06, before the alert. Sealed receipts do not undo payments; that invoice needs a recall or confirmation decision.
 
-## The eight-test suite
+## The acceptance suite (10 tests, 12 scenarios)
 
 | # | Change | Gate at INV-007 | ODR if the gate is bypassed | Enforcement owner |
 |---|---|---|---|---|
@@ -57,10 +57,30 @@ The demo runs on one simulated clock. The reference engine normally reads the wa
 | 6 | fraud feed unreachable at 09:16 | HOLD: `fraud-alert-clear` unknown | refused: condition unknown | runtime gate (fail closed) |
 | 7 | beneficiary check older than 24h | HOLD: `beneficiaries-verified` stale | refused: condition stale | runtime gate |
 | 8 | three roles share one credential | n/a | DENIED for the out-of-role action | IAM (effective privilege finding) |
+| 9a | true alert at 09:15, cached `none` from 08:58, 3600s freshness window | PASS: EXPOSED, USD 18,500 paid to VENDOR-X | sealed: the recorded observation still passes | runtime gate and source integration |
+| 9b | same frozen source, pull at approval/execution, 60s freshness window | HOLD: `fraud-alert-clear` stale | refused: condition stale | runtime gate and source integration |
+| 10a | bank witness freshly lies `none`; PSP and SIEM report VENDOR-X | HOLD: PSP and SIEM breached, not bank | refused: conditions breached | runtime gate and independent witnesses |
+| 10b | no real alert; PSP plants an alert on VENDOR-B | HOLD: PSP breached; no payments after 09:15 | refused: condition breached | runtime gate; attacker causes delay, not payment |
 
 Test 5 also reports revocation latency in two layers. At the decision layer, no action was accepted after the revocation and the first attempt (09:20) was refused. At the credential layer, an assumed 300-second token cache would keep the shared credential usable until 09:23. The second number is an assumption, not a measurement of any real IAM system; in a real review it is measured.
 
 Tests 4 and 8 rely on exact rule checks. ODR does not decide whether one action is semantically contained in another, and it does not discover credentials.
+
+## Feed trust
+
+<!-- credit: pending -->
+
+- *Silence isn't evidence: the gate asks at execution.*
+- *One witness can stop a payment; it takes all of them to release it.*
+- *Three feeds from one upstream are one witness wearing three badges.* Independence is **assumed** here; in a real Review it is a finding, not a given.
+
+The source model is opt-in. Default runs and tests 1–8 still consume the original observation snapshots. Pull mode asks every bound source at approval and before each attempted payment. `live` returns current synthetic truth with the query timestamp; `frozen` returns its last answer unchanged; `down` supplies no observation; `silenced` lies with a fresh `none`; `false_alarm` names the attacker's chosen vendor with a fresh timestamp. A fresh answer is not proof of truth.
+
+In 9a the lazy gate retains `none` from 08:58. At 09:20 its 22-minute age is inside the bound 3600-second window, so the dangerous PASS is the expected **EXPOSED** result, not a failing suite. In 9b, earlier pulls advanced the last answer to 09:12 before the source froze at 09:15; at 09:20 that answer is eight minutes old and exceeds the bound 60 seconds. We do not backdate it to 08:58. Approval succeeds because the gate also pulls at 09:00.
+
+The three-witness bundle has **no `compensation` block**, either at bundle level or in its authority rules. Do not add a majority `k_of_n`: it would let healthy-looking witnesses outvote a breached or stale witness, changing the release rule. Missing or stale witnesses also hold the run. A planted alert pauses the whole run; it does not select, reroute or authorise a payment to the named vendor. This trades availability for the specified stop rule; it is not denial-of-service resistance.
+
+Sources, modes and independence are synthetic assumptions, not production connectors, authenticated attestations or proof of compromise resistance. Condition definitions and source references are chosen **before** approval and stay bound by the existing authority hash. No engine or schema change is required.
 
 ## In change-control terms
 
