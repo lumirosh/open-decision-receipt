@@ -12,6 +12,7 @@ Start with one payment. Then follow the authority, evidence, and execution behin
 - [Architecture](./architecture.md)
 - [Lifecycle](./lifecycle.md)
 - [Google ADK workflows](../integrations/google_adk/README.md), an optional adapter with local mock actions
+- [Resource-side authority continuity](../integrations/authority_continuity/README.md), an optional SQLite example of final admission and recovery ownership without resend authority
 - [MCP verified-action bridge](./mcp-verified-action-bridge.md)
 
 ## Review the control model

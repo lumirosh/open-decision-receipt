@@ -48,6 +48,17 @@ python -m pytest -q
 
 The matrix covers valid payments, changed bank details, fraud alerts, out-of-role actions, revoked approvers, unavailable feeds, stale checks, excess credential privileges, feed trust (frozen, silenced and false-alarm sources), and blast radius. Its 300-second credential cache and witness independence are assumptions, not measured IAM latency or verified source independence. The cap is a synthetic, single-run gate rule, not an ODR engine guarantee.
 
+## Optional resource-side admission
+
+An optional [resource-side continuity reference](./integrations/authority_continuity/README.md) shows a different boundary: a synthetic SQLite resource checks admission in the transaction that creates its own mock effect. Recovery ownership places the operation on hold; it does not authorize another payment.
+
+```bash
+python -m integrations.authority_continuity.reference
+python -m pytest -q tests/test_authority_continuity.py
+```
+
+This is a local integration example, not a change to the ODR receipt contract or a real payment-provider guarantee. It does not reproduce the separate PostgreSQL/Docker crash and race experiments.
+
 ## What the receipt preserves
 
 - **Authority:** the asserted approver or policy rule, scope, role, and validity window.
