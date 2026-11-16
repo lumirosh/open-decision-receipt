@@ -38,7 +38,7 @@ The $9,800 is part of the committed $42,000, not an additional payment.
 
 **This is a simulation, not a banking integration.** Data, identities, permissions, clock, and gate are synthetic. ODR does not move money or stop actions by itself.
 
-Run the acceptance matrix (11 tests, 13 scenarios), export its evidence, or run the tests:
+Run the acceptance matrix, export its evidence, or run the tests:
 
 ```bash
 python scripts/ap-payment-run-demo.py --suite
@@ -46,18 +46,7 @@ python scripts/ap-payment-run-demo.py --suite --out ./ap-demo-evidence
 python -m pytest -q
 ```
 
-The matrix covers valid payments, changed bank details, fraud alerts, out-of-role actions, revoked approvers, unavailable feeds, stale checks, excess credential privileges, feed trust (frozen, silenced and false-alarm sources), and blast radius. Its 300-second credential cache and witness independence are assumptions, not measured IAM latency or verified source independence. The cap is a synthetic, single-run gate rule, not an ODR engine guarantee.
-
-## Optional resource-side admission
-
-An optional [resource-side continuity reference](./integrations/authority_continuity/README.md) shows a different boundary: a synthetic SQLite resource checks admission in the transaction that creates its own mock effect. Recovery ownership places the operation on hold; it does not authorize another payment.
-
-```bash
-python -m integrations.authority_continuity.reference
-python -m pytest -q tests/test_authority_continuity.py
-```
-
-This is a local integration example, not a change to the ODR receipt contract or a real payment-provider guarantee. It does not reproduce the separate PostgreSQL/Docker crash and race experiments.
+The matrix covers valid payments, changed bank details, fraud alerts, out-of-role actions, revoked approvers, unavailable feeds, stale checks, excess credential privileges, feed trust (frozen, silenced and false-alarm sources), and blast radius. Scenario details are in the [worked case](./docs/case-study-ap-payment-run.md). Its 300-second credential cache and witness independence are assumptions, not measured IAM latency or verified source independence. The cap is a synthetic, single-run gate rule, not an ODR engine guarantee.
 
 ## What the receipt preserves
 
@@ -81,7 +70,7 @@ ODR supplies the record and reference checks. Your integration owns authenticati
 
 ## Go deeper
 
-- **Build:** [CLI quickstart](./docs/quickstart.md), [optional Google ADK workflows](./integrations/google_adk/README.md), [MCP bridge](./docs/mcp-verified-action-bridge.md).
+- **Build:** [CLI quickstart](./docs/quickstart.md), [optional SQLite authority-continuity reference](./integrations/authority_continuity/README.md), [optional Google ADK workflows](./integrations/google_adk/README.md), [MCP bridge](./docs/mcp-verified-action-bridge.md).
 - **Review:** [architecture](./docs/architecture.md), [conformance levels](./docs/mappings/conformance.md), [limitations](./docs/limitations.md).
 - **Explore:** [all documentation, worked cases, mappings, and research](./docs/README.md).
 
@@ -91,7 +80,9 @@ Schema validation is not a governed workflow: L1 checks documentation, L2 record
 
 ODR is an open receipt format and minimal reference implementation, not an IAM system, runtime enforcement engine, GRC suite, signature scheme, or legal opinion.
 
-Actors and authority sources are supplied by the integration. A matching action hash binds recorded objects; it does not independently prove identity, legitimate authority, true evidence, or a real-world outcome. Read the [full limitations](./docs/limitations.md) before relying on a receipt.
+Actors and authority sources are supplied by the integration. Approval records the asserted actor and scope; it does not authenticate the approver or independently establish that they held legitimate authority. A matching action hash binds recorded objects; it does not prove the evidence is true or that the real-world action occurred as recorded. Execution details are supplied by the executor, not independently observed by ODR. Read the [full limitations](./docs/limitations.md) before relying on a receipt.
+
+The optional [SQLite continuity example](./integrations/authority_continuity/README.md) demonstrates a local resource-side admission and recovery hold. It is separate from this receipt contract and adds no default ODR policy or external enforcement.
 
 ## Contributing and license
 

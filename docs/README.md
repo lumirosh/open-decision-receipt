@@ -4,7 +4,7 @@ Start with one payment. Then follow the authority, evidence, and execution behin
 
 ## Start with the runnable story
 
-- [AI agent payment run](./case-study-ap-payment-run.md): three roles share one credential; a fraud alert changes the basis for an approved run; a gate holds the next invoice. Includes the eight-scenario matrix, reconciliation, and explicit synthetic boundaries.
+- [AI agent payment run](./case-study-ap-payment-run.md): three roles share one credential; a fraud alert changes the basis for an approved run; a gate holds the next invoice. Includes the runnable payment scenario, reconciliation, acceptance suite, and explicit synthetic boundaries.
 - [CLI quickstart](./quickstart.md): verify, approve, seal, replay, and reopen one decision step by step.
 
 ## Build or integrate

@@ -1,12 +1,13 @@
 """Compile authorized Decision Receipts into constrained action schemas.
 
-The BEFORE tense becomes enforceable at generation time: the model can only
-emit actions inside the approved scope and must bind the output to the
-Decision Receipt that granted authority.
+A host can use the schema to constrain generation to an approved action and
+its Decision Receipt. The schema itself does not authenticate authority or
+enforce runtime execution.
 """
 from __future__ import annotations
 
-from .receipt import AUTHORIZED, SEALED, Receipt
+from .engine import canonical_action
+from .receipt import AUTHORIZED, SEALED, Receipt, sha256_of
 
 
 SCHEMA_ALLOWED_STATUSES = {AUTHORIZED, SEALED}
@@ -29,22 +30,26 @@ def compile_action_schema(receipt: Receipt, param_schema: dict | None = None) ->
 
     allowed = list(receipt.boundary.get("allowed_actions", []))
     scope = receipt.authority.get("approval_scope")
-    actions = [scope] if scope in allowed else allowed
-    if not actions:
-        raise ValueError("empty allowed set - nothing may be generated")
+    if not isinstance(scope, str) or not scope or scope not in allowed or scope != receipt.decision_type or scope != receipt.request.get("requested_action"):
+        raise ValueError("approval scope does not bind the requested action")
+    action = canonical_action(receipt.workflow, scope, receipt.request.get("params"))
+    digest = sha256_of(action)
+    if (action != receipt.request.get("canonical_action")
+            or digest != receipt.request.get("action_hash") or digest != receipt.authority.get("action_hash")):
+        raise ValueError("action commitment is missing or changed")
+    params = {"type": "object", "const": action["parameters"]}
+    if param_schema is not None:
+        params = {"allOf": [params, param_schema]}
 
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": f"scoped-actions:{receipt.decision_id}",
         "type": "object",
         "additionalProperties": False,
-        "required": ["action", "decision_id"],
+        "required": ["action", "decision_id", "params"],
         "properties": {
-            "action": {"enum": actions},
+            "action": {"enum": [scope]},
             "decision_id": {"const": receipt.decision_id},
-            "params": param_schema or {
-                "type": "object",
-                "const": receipt.request.get("params", {}),
-            },
+            "params": params,
         },
     }

@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 for module_name in list(sys.modules):
@@ -152,6 +153,33 @@ def test_grammar_can_render_from_sealed_receipt_for_replay(bundle_store, deploy_
     schema = compile_action_schema(receipt)
 
     assert schema["properties"]["decision_id"]["const"] == receipt.decision_id
+
+
+@pytest.mark.parametrize("case", ["changed", "omitted"])
+def test_custom_grammar_cannot_widen_or_omit_approved_params(bundle_store, deploy_request, case):
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator", bundles=bundle_store, approver_role="change_authority")
+    validator = Draft202012Validator(compile_action_schema(receipt, {"type": "object"}))
+    proposed = {"action": receipt.decision_type, "decision_id": receipt.decision_id,
+                "params": receipt.request["params"]}
+    assert validator.is_valid(proposed)
+    if case == "changed":
+        proposed["params"] = {"environment": "staging", "path": "B"}
+    else:
+        proposed.pop("params")
+    assert not validator.is_valid(proposed)
+
+
+@pytest.mark.parametrize("case", ["scope", "params", "hash"])
+def test_grammar_rejects_unbound_scope_and_action(bundle_store, deploy_request, case):
+    receipt = approve(verify_action(deploy_request, bundle_store), approver="operator", bundles=bundle_store, approver_role="change_authority")
+    if case == "scope":
+        receipt.authority.pop("approval_scope")
+    elif case == "params":
+        receipt.request["params"] = {"environment": "staging", "path": "B"}
+    else:
+        receipt.authority.pop("action_hash")
+    with pytest.raises(ValueError):
+        compile_action_schema(receipt)
 
 
 def test_replay_tells_decision_story(bundle_store, deploy_request):

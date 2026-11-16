@@ -28,6 +28,7 @@ include = ["dam_verify*", "integrations*"]
 exclude = ["schemas*", "tests*"]
 
 [tool.setuptools.package-data]
+dam_verify = ["_resources/schemas/*.json", "_resources/action_bundles/*.yaml"]
 "integrations.google_adk.loan_denial" = ["*.yaml", "*.json"]
 "integrations.google_adk.soc_analyst_containment" = ["*.yaml", "*.json"]
 

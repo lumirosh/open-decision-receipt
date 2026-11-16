@@ -64,8 +64,9 @@ class BundleStore:
         self.root = Path(root)
 
     def resolve(self, workflow: str) -> dict | None:
-        path = self.root / f"{workflow}.yaml"
-        if not path.exists():
+        root = self.root.resolve()
+        path = (root / f"{workflow}.yaml").resolve()
+        if path.parent != root or not path.is_file():
             return None
         return yaml.safe_load(path.read_text())
 
