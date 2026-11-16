@@ -1,0 +1,2 @@
+include schemas/*.json
+include dam/action_bundles/*.yaml

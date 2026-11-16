@@ -44,6 +44,12 @@ That is why the schema records dissenting signals, separation of duties, approva
 
 `seal()` consumes authority in the returned receipt as soon as execution is attempted, and the shipped CLI and adapters persist that result. The library call and persistence step are not one atomic store transaction. A custom host that discards a failed `seal()` result and reloads the earlier authorized receipt can lose the consumption record. Library integrations must persist every seal result; a future store-level transaction is required before claiming atomic one-shot enforcement across arbitrary hosts.
 
+## Optional resource-side continuity example
+
+The [SQLite continuity reference](../integrations/authority_continuity/README.md) checks and consumes a grant in the same transaction as its own synthetic effect. That property belongs to the example resource, not to `seal()`, receipt persistence, or an arbitrary external provider. Its recovery hold prevents its current recovery owner from paying; observation does not authorize resend.
+
+The example trusts supplied policy, approval records, resource control and its local effect ledger. It does not authenticate human mandate or workload identity, prove independent external outcomes, make two stores atomic, or reproduce the PostgreSQL/Docker crash and concurrency proof. It does not change the core lifecycle or remove the persistence limitation above.
+
 ## Not legal advice
 
 Regulatory mappings are implementation aids, not legal advice. Use counsel and domain experts for binding interpretations.

@@ -26,10 +26,15 @@ from .engine import BundleStore, ReceiptStore, verify_action, approve, seal, wat
 from .okf import promote_receipt_bundle
 
 PROJECT = Path(__file__).resolve().parent.parent
-DEFAULT_BUNDLES_DIR = PROJECT / "dam" / "action_bundles"
-DEFAULT_RECEIPTS_DIR = PROJECT / "data" / "action_receipts"
-DEFAULT_OKF_BUNDLES_DIR = PROJECT / "dam" / "bundles"
-RECEIPT_SCHEMA = PROJECT / "schemas" / "decision-receipt.schema.json"
+_RESOURCE_ROOT = Path(__file__).resolve().parent / "_resources"
+RECEIPT_SCHEMA = _RESOURCE_ROOT / "schemas" / "decision-receipt.schema.json"
+if not RECEIPT_SCHEMA.is_file():
+    RECEIPT_SCHEMA = PROJECT / "schemas" / "decision-receipt.schema.json"
+DEFAULT_BUNDLES_DIR = _RESOURCE_ROOT / "action_bundles"
+if not DEFAULT_BUNDLES_DIR.is_dir():
+    DEFAULT_BUNDLES_DIR = PROJECT / "dam" / "action_bundles"
+DEFAULT_RECEIPTS_DIR = Path.cwd() / "data" / "action_receipts"
+DEFAULT_OKF_BUNDLES_DIR = Path.cwd() / "dam" / "bundles"
 
 
 def _print(r):

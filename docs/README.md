@@ -4,7 +4,7 @@ Start with one payment. Then follow the authority, evidence, and execution behin
 
 ## Start with the runnable story
 
-- [AI agent payment run](./case-study-ap-payment-run.md): three roles share one credential; a fraud alert changes the basis for an approved run; a gate holds the next invoice. Includes the eight-scenario matrix, reconciliation, and explicit synthetic boundaries.
+- [AI agent payment run](./case-study-ap-payment-run.md): three roles share one credential; a fraud alert changes the basis for an approved run; a gate holds the next invoice. Includes the runnable payment scenario, reconciliation, acceptance suite, and explicit synthetic boundaries.
 - [CLI quickstart](./quickstart.md): verify, approve, seal, replay, and reopen one decision step by step.
 
 ## Build or integrate
@@ -12,6 +12,7 @@ Start with one payment. Then follow the authority, evidence, and execution behin
 - [Architecture](./architecture.md)
 - [Lifecycle](./lifecycle.md)
 - [Google ADK workflows](../integrations/google_adk/README.md), an optional adapter with local mock actions
+- [Resource-side authority continuity](../integrations/authority_continuity/README.md), an optional SQLite example of final admission and recovery ownership without resend authority
 - [MCP verified-action bridge](./mcp-verified-action-bridge.md)
 
 ## Review the control model
