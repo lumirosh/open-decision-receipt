@@ -26,20 +26,42 @@ ACTION='pay_synthetic'
 A={'obligation':'invoice-7','entity':'supplier-7','amount':100,'currency':'USD','account':'account-A'}
 B=A|{'account':'account-B'}
 
+def prepare(root, params, condition, observed):
+    """Shared temporary fixture for the mock-seal and resource experiments."""
+    root = Path(root)
+    bundles, obs = root / 'bundles', root / 'obs'
+    bundles.mkdir()
+    obs.mkdir()
+    bundle = {
+        'workflow': WORKFLOW, 'version': 1,
+        'human_gate': {'allowed_roles': ['reviewer'],
+                       'role_assignments': {'reviewer': ['reviewer-1']}},
+        'authority_rules': [{'actors': ['agent'], 'risk_classes': ['high'],
+                             'allowed_actions': [ACTION], 'denied_actions': [],
+                             'requires_human': True, 'basis': 'synthetic review rule'}],
+    }
+    if condition is not None:
+        bundle['conditions'] = [{'condition_id': 'source-appraisal',
+                                 'source_ref': 'appraisal', 'operator': 'eq',
+                                 'expected_value': condition, 'max_age_seconds': 300}]
+    (bundles / f'{WORKFLOW}.yaml').write_text(json.dumps(bundle))
+
+    def write(value):
+        snapshots = {} if value is None else {'appraisal': {
+            'observed_value': value,
+            'last_validated_at': datetime.now(timezone.utc).isoformat(timespec='seconds')}}
+        (obs / f'{WORKFLOW}.yaml').write_text(json.dumps({'observations': snapshots}))
+
+    write(observed)
+    bs, observations = BundleStore(bundles), ObservationsStore(obs)
+    request = {'workflow': WORKFLOW, 'actor': 'agent', 'risk_class': 'high',
+               'action': ACTION, 'params': params}
+    return verify_action(request, bs, observations), bs, observations, write
+
+
 def run(case,params,condition,observed,post=None,qualified_gate=False):
     with TemporaryDirectory() as d:
-        root=Path(d); bundles=root/'bundles'; obs=root/'obs'; bundles.mkdir();obs.mkdir()
-        bundle={'workflow':WORKFLOW,'version':1,'human_gate':{'allowed_roles':['reviewer'],'role_assignments':{'reviewer':['reviewer-1']}},'authority_rules':[{'actors':['agent'],'risk_classes':['high'],'allowed_actions':[ACTION],'denied_actions':[],'requires_human':True,'basis':'synthetic review rule'}]}
-        if condition is not None:
-            bundle['conditions']=[{'condition_id':'source-appraisal','source_ref':'appraisal','operator':'eq','expected_value':condition,'max_age_seconds':300}]
-        (bundles/f'{WORKFLOW}.yaml').write_text(json.dumps(bundle))
-        def write(value):
-            snapshots={} if value is None else {'appraisal':{'observed_value':value,'last_validated_at':datetime.now(timezone.utc).isoformat(timespec='seconds')}}
-            (obs/f'{WORKFLOW}.yaml').write_text(json.dumps({'observations':snapshots}))
-        write(observed)
-        bs,os=BundleStore(bundles),ObservationsStore(obs)
-        request={'workflow':WORKFLOW,'actor':'agent','risk_class':'high','action':ACTION,'params':params}
-        r=verify_action(request,bs,os)
+        r, bs, observations, write = prepare(d, params, condition, observed)
         if r.check.get('failed_conditions') or r.check.get('missing'):
             return 'CHECK_HELD'
         approve(r,'reviewer-1',bs,'reviewer')
@@ -47,7 +69,7 @@ def run(case,params,condition,observed,post=None,qualified_gate=False):
             return 'GATE_HELD'
         if post is not None: write(post)
         # This is a supplied synthetic execution record, not a resource effect.
-        r=seal(r,{'canonical_action':r.request['canonical_action'],'execution_result':'synthetic'},bs,os)
+        r=seal(r,{'canonical_action':r.request['canonical_action'],'execution_result':'synthetic'},bs,observations)
         return r.status
 
 if __name__=='__main__':
