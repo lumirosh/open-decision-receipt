@@ -34,6 +34,10 @@ A receipt records what evidence was visible and what basis was checked. It does 
 
 Bad evidence with a good receipt is still bad evidence. The receipt makes that dependency visible. Structured-query evidence can record a query's provenance and a result commitment, but it does not prove the query backend, source material, or result was true. See [`future-directions.md`](./future-directions.md).
 
+A satisfied equality condition does not automatically establish that an external appraisal applies to the requested canonical action; the integration must derive and check that correspondence, not just reuse a generic verdict or an unrelated stored digest. See the [eight-case integration example](../examples/appraisal-binding/README.md).
+
+An observation's `last_validated_at` later than its condition-evaluation timestamp is `unknown`, including a sub-second difference; the default evaluation clock uses whole-second `now_iso()` timestamps.
+
 ## Human approval is not automatically good approval
 
 The receipt binds explicit approval to an asserted approver, assigned role, authority snapshot, expiry, and canonical action. The reference implementation does not prove cryptographic identity, organizational authority beyond the supplied bundle, competence, independence, freedom from pressure, or authorship.
